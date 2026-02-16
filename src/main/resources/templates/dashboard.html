@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{layout :: head-content}"></head>
+
+<body>
+
+<nav th:replace="~{layout :: navbar}"></nav>
+
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-white p-4">
+                <h1>👋 Welcome back, User!</h1>
+                <p class="lead">Your virtual portfolio is ready.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card border-success h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-success">Available Cash</h5>
+                    <h2 class="display-6">$10,000.00</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-primary h-100">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">Portfolio Value</h5>
+                    <h2 class="display-6">$0.00</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card border-secondary h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total P/L</h5>
+                    <h2 class="display-6 text-muted">$0.00</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<footer th:replace="~{layout :: footer}"></footer>
+
+</body>
+</html>
