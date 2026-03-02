@@ -8,7 +8,7 @@ import Register from './Register';
 const Home = () => (
     <div className="container mt-5">
         <h2>Welcome to the Stock Simulator</h2>
-        <p>Your full-stack React + Spring Boot app is alive! Please log in to start trading.</p>
+        <p>Please log in to start trading.</p>
     </div>
 );
 
