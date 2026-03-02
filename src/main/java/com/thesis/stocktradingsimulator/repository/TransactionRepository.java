@@ -1,4 +1,13 @@
 package com.thesis.stocktradingsimulator.repository;
 
-public class TransactionRepository {
+import com.thesis.stocktradingsimulator.model.Transaction;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface TransactionRepository extends JpaRepository<Transaction, Long> {
+    // Get transaction history for a portfolio, ordered by newest first
+    List<Transaction> findByPortfolioIdOrderByTimestampDesc(Long portfolioId);
 }
