@@ -1,21 +1,15 @@
 import { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, NavLink, Navigate } from 'react-router-dom';
 import Portfolio from './Portfolio';
-import Explore from './Explore';
+import Explore from './Explorev2';
 import Login from './Login';
 import Register from './Register';
+import Learn from './Learn';
 
 const Home = () => (
     <div className="container mt-5">
         <h2>Welcome to the Stock Simulator</h2>
         <p>Please log in to start trading.</p>
-    </div>
-);
-
-const Learn = () => (
-    <div className="container mt-5">
-        <h2>Learn to Trade</h2>
-        <p className="text-muted">Educational content and trading guides coming soon!</p>
     </div>
 );
 

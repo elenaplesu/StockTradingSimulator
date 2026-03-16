@@ -1,14 +1,18 @@
 package com.thesis.stocktradingsimulator.controller;
 
 import com.thesis.stocktradingsimulator.model.StockQuote;
+import com.thesis.stocktradingsimulator.dto.ChartPoint;
 import com.thesis.stocktradingsimulator.service.MarketDataService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @CrossOrigin(origins = "http://localhost:5173")
 @RequestMapping("/api/stocks")
 public class StockController {
+
     private final MarketDataService marketDataService;
 
     public StockController(MarketDataService marketDataService) {
@@ -20,9 +24,23 @@ public class StockController {
         StockQuote quote = marketDataService.getLivePrice(symbol);
 
         if (quote != null) {
-            return ResponseEntity.ok(quote); // Returns 200 OK + JSON data
+            return ResponseEntity.ok(quote);
         } else {
-            return ResponseEntity.notFound().build(); // Returns 404 Error
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping("/{symbol}/history")
+    public ResponseEntity<?> getStockHistory(
+            @PathVariable String symbol,
+            @RequestParam(required = false, defaultValue = "1D") String range) {
+
+        List<ChartPoint> history = marketDataService.getStockHistory(symbol, range);
+
+        if (history != null && !history.isEmpty()) {
+            return ResponseEntity.ok(history);
+        } else {
+            return ResponseEntity.badRequest().body("No historical data available.");
         }
     }
 }

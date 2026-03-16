@@ -19,7 +19,6 @@ public class User {
     // Default Constructor (Required by JPA)
     public User() {}
 
-//note to research password security
     public User(String username, String password, double cashBalance) {
         this.username = username;
         this.password = password;

@@ -40,12 +40,13 @@ public class TransactionManagerService {
         if (quote == null) return "Error: Invalid stock symbol or API error.";
         double price = quote.getCurrentPrice();
         double totalCost = price * quantity;
+        double totalCostRounded=Math.round(totalCost * 100.0) / 100.0;
 
-        if (user.getCashBalance() < totalCost) {
-            return "Error: Insufficient funds. Need $" + totalCost + " but have $" + user.getCashBalance();
+        if (user.getCashBalance() < totalCostRounded) {
+            return "Error: Insufficient funds. Need $" + totalCostRounded + " but have $" + user.getCashBalance();
         }
 
-        user.setCashBalance(user.getCashBalance() - totalCost);
+        user.setCashBalance(user.getCashBalance() - totalCostRounded);
         userRepository.save(user);
 
         Optional<Holding> holdingOption = holdingRepository.findByPortfolioIdAndSymbol(portfolio.getId(), symbol.toUpperCase());
@@ -53,11 +54,12 @@ public class TransactionManagerService {
             Holding holding = holdingOption.get();
             // Calculate new average buy price
             double totalSpentPreviously = holding.getQuantity() * holding.getAverageBuyPrice();
-            double newTotalSpent = totalSpentPreviously + totalCost;
+            double newTotalSpent = totalSpentPreviously + totalCostRounded;
             int newQuantity = holding.getQuantity() + quantity;
 
             holding.setQuantity(newQuantity);
-            holding.setAverageBuyPrice(newTotalSpent / newQuantity);
+            double newAveragePrice = newTotalSpent / newQuantity;
+            holding.setAverageBuyPrice(Math.round(newAveragePrice * 100.0) / 100.0);
             holdingRepository.save(holding);
         }else {
             // Create a brand new holding
@@ -68,7 +70,7 @@ public class TransactionManagerService {
         Transaction transaction = new Transaction(portfolio, "BUY", symbol.toUpperCase(), quantity, price);
         transactionRepository.save(transaction);
 
-        return "Success: Bought " + quantity + " shares of " + symbol.toUpperCase() + " for $" + totalCost;
+        return "Success: Bought " + quantity + " shares of " + symbol.toUpperCase() + " for $" + String.format("%.2f", totalCostRounded);
     }
     @Transactional
     public String executeSell(Long userId, String symbol, int quantity) {
@@ -93,8 +95,9 @@ public class TransactionManagerService {
 
         double price = quote.getCurrentPrice();
         double totalRevenue = price * quantity;
+        double totalRevenueRounded = Math.round(totalRevenue * 100.0) / 100.0;
 
-        user.setCashBalance(user.getCashBalance() + totalRevenue);
+        user.setCashBalance(user.getCashBalance() + totalRevenueRounded);
         userRepository.save(user);
 
 
@@ -112,7 +115,15 @@ public class TransactionManagerService {
         Transaction transaction = new Transaction(portfolio, "SELL", symbol.toUpperCase(), quantity, price);
         transactionRepository.save(transaction);
 
-        return "Success: Sold " + quantity + " shares of " + symbol.toUpperCase() + " for $" + totalRevenue;
+        return "Success: Sold " + quantity + " shares of " + symbol.toUpperCase() + " for $" + String.format("%.2f", totalRevenueRounded);
+    }
+
+    public java.util.List<Transaction> getTransactionHistory(Long userId) {
+        Portfolio portfolio = portfolioRepository.findByUserId(userId).orElse(null);
+        if (portfolio == null) {
+            return java.util.Collections.emptyList();
+        }
+        return transactionRepository.findByPortfolioIdOrderByTimestampDesc(portfolio.getId());
     }
 
 }
