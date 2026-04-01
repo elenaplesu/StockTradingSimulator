@@ -1,64 +1,105 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
-export default function Learn() {
-    return (
-        <div className="container mt-5 mb-5">
-            <div className="text-center mb-5">
-                <h2 className="fw-bold">Trading 101</h2>
-                <p className="text-muted fs-5">Master the basics of the stock market before risking your virtual cash.</p>
+export default function Learn({ userId }) {
+    const [quizStarted, setQuizStarted] = useState(false);
+    const [questions, setQuestions] = useState([]);
+    const [currentIdx, setCurrentIdx] = useState(0);
+    const [score, setScore] = useState(0);
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [error, setError] = useState(null);
+
+    const generateCustomQuiz = () => {
+        if (!userId) {
+            setError("Please log in to generate a custom quiz.");
+            return;
+        }
+
+        setIsGenerating(true);
+        setError(null);
+
+        // Fetch the quiz directly from your new AI Spring Boot endpoint
+        fetch(`http://localhost:8080/api/learn/ai-quiz/${userId}`)
+            .then(res => {
+                if (!res.ok) throw new Error("Failed to generate quiz");
+                return res.json();
+            })
+            .then(aiQuizData => {
+                // Randomize options so the correct answer isn't always in the same spot
+                const shuffledQuestions = aiQuizData.map(question => ({
+                    ...question,
+                    options: question.options.sort(() => Math.random() - 0.5)
+                }));
+
+                setQuestions(shuffledQuestions);
+                setScore(0);
+                setCurrentIdx(0);
+                setQuizStarted(true);
+                setIsGenerating(false);
+            })
+            .catch(err => {
+                console.error("AI Quiz Error:", err);
+                setError("Failed to connect to the Google Gemini AI. Please try again.");
+                setIsGenerating(false);
+            });
+    };
+
+    const handleAnswer = (selectedOption) => {
+        const isCorrect = selectedOption === questions[currentIdx].answer;
+        if (isCorrect) {
+            setScore(score + 1);
+        }
+
+        if (currentIdx + 1 < questions.length) {
+            setCurrentIdx(currentIdx + 1);
+        } else {
+            // End of Quiz
+            alert(`Quiz Complete! You scored ${isCorrect ? score + 1 : score} / ${questions.length}`);
+            setQuizStarted(false);
+        }
+    };
+
+    // UI SCREEN 1: The Start Button
+    if (!quizStarted) {
+        return (
+            <div className="container mt-5 text-center">
+                <h2 className="fw-bold">Your Custom Trading Quiz</h2>
+                <p className="text-muted">Questions generated dynamically by Google Gemini based on your live portfolio.</p>
+
+                {error && <div className="alert alert-danger w-50 mx-auto">{error}</div>}
+
+                <button
+                    className="btn btn-primary btn-lg mt-3 shadow-sm"
+                    onClick={generateCustomQuiz}
+                    disabled={isGenerating}
+                >
+                    {isGenerating ? (
+                        <><span className="spinner-border spinner-border-sm me-2"></span> AI is analyzing your portfolio...</>
+                    ) : (
+                        "Analyze Portfolio & Start AI Quiz"
+                    )}
+                </button>
             </div>
+        );
+    }
 
-            <div className="row justify-content-center">
-                <div className="col-lg-8">
+    // UI SCREEN 2: The Active Quiz
+    const currentQ = questions[currentIdx];
 
-                    <div className="card shadow-sm border-0 mb-4">
-                        <div className="card-body bg-light rounded p-4">
-                            <h4 className="fw-bold text-primary mb-3">1. What is a Stock?</h4>
-                            <p>
-                                A stock represents a fractional ownership interest in a company. When you buy a stock, you are buying a small piece of that corporation. Companies issue shares to raise capital to grow their business.
-                            </p>
-                            <div className="p-3 bg-white border rounded shadow-sm mt-3">
-                                <strong>Ticker Symbol:</strong> A unique series of letters representing a specific stock on the exchange.
-                                <br /><em>Examples: <strong>AAPL</strong> (Apple), <strong>TSLA</strong> (Tesla), <strong>AMZN</strong> (Amazon).</em>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="card shadow-sm border-0 mb-4">
-                        <div className="card-body bg-light rounded p-4">
-                            <h4 className="fw-bold text-success mb-3">2. Executing Trades</h4>
-                            <p>
-                                This simulator processes <strong>Market Orders</strong>. This means your trade is executed immediately at the current real-time market price.
-                            </p>
-                            <ul className="mb-0">
-                                <li className="mb-2"><strong>Buying:</strong> You exchange your available Cash Balance for shares. You cannot buy if you do not have sufficient funds!</li>
-                                <li><strong>Selling:</strong> You liquidate your owned shares back into cash at the current market price, realizing any profit or loss.</li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="card shadow-sm border-0 mb-4">
-                        <div className="card-body bg-light rounded p-4">
-                            <h4 className="fw-bold text-info mb-3">3. Profit and Loss (P/L)</h4>
-                            <p>
-                                Your goal as a trader is simple: Buy low, sell high. Your Portfolio dashboard tracks your performance automatically.
-                            </p>
-                            <ul>
-                                <li className="mb-2"><strong>Average Buy Price:</strong> If you buy 10 shares at $100 and later buy 10 more at $150, your average buy price becomes $125.</li>
-                                <li><strong>Calculating P/L:</strong> The system calculates your returns using this formula: <br/>
-                                    <code>(Current Price - Average Buy Price) × Number of Shares</code></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div className="text-center mt-5">
-                        <h5 className="fw-bold mb-3">Ready to put your knowledge to the test?</h5>
-                        <Link to="/explore" className="btn btn-primary btn-lg shadow-sm px-5 fw-bold">
-                            Explore the Market
-                        </Link>
-                    </div>
-
+    return (
+        <div className="container mt-5 mb-5 w-75 mx-auto">
+            <h5 className="text-muted text-center mb-4">Question {currentIdx + 1} of {questions.length}</h5>
+            <div className="card shadow border-0 p-5">
+                <h3 className="mb-4 text-center lh-base">{currentQ.q}</h3>
+                <div className="d-flex flex-column gap-3 mt-4">
+                    {currentQ.options.map((opt, idx) => (
+                        <button
+                            key={idx}
+                            className="btn btn-outline-dark btn-lg text-start py-3"
+                            onClick={() => handleAnswer(opt)}
+                        >
+                            <span className="fw-bold me-3">{String.fromCharCode(65 + idx)}.</span> {opt}
+                        </button>
+                    ))}
                 </div>
             </div>
         </div>

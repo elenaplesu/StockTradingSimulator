@@ -181,8 +181,6 @@ export default function Explore({ userId }) {
                                     // Check if the NEXT blank slot exists AND time has passed its required timestamp
                                     if (nextIdx < newData.length && now >= newData[nextIdx].timestamp) {
                                         newData[nextIdx] = { ...newData[nextIdx], price: realPrice };
-                                    } else {
-                                        newData[lastValidIdx] = { ...newData[lastValidIdx], price: realPrice };
                                     }
                                 }
                                 return newData;

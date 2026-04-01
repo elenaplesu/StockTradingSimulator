@@ -53,7 +53,7 @@ function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login setUserId={setUserId} />} />
                 <Route path="/register" element={<Register setUserId={setUserId} />} />
-                <Route path="/learn" element={<Learn />} />
+                <Route path="/learn" element={<Learn userId={userId} />} />
                 <Route path="/explore" element={<Explore userId={userId} />} />
                 <Route path="/portfolio" element={userId ? <Portfolio userId={userId} /> : <Navigate to="/login" />} />
             </Routes>
