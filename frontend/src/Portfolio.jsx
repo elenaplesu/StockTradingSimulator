@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from './config';
 
 export default function Portfolio({userId}) {
     const [data, setData] = useState(null);
@@ -11,7 +12,7 @@ export default function Portfolio({userId}) {
 
     const fetchPortfolio = () => {
         // 1. Fetch Analytics
-        fetch(`http://localhost:8080/api/portfolio/${userId}/analytics`)
+        fetch(`${API_BASE_URL}/api/portfolio/${userId}/analytics`)
             .then(response => {
                 if (!response.ok) throw new Error("Failed to load analytics");
                 return response.json();
@@ -26,7 +27,7 @@ export default function Portfolio({userId}) {
             });
 
         // 2. Fetch Transaction History
-        fetch(`http://localhost:8080/api/portfolio/${userId}/transactions`)
+        fetch(`${API_BASE_URL}/api/portfolio/${userId}/transactions`)
             .then(response => {
                 if (!response.ok) throw new Error("Failed to load transactions");
                 return response.json();
@@ -51,7 +52,7 @@ export default function Portfolio({userId}) {
 
         const payload = { userId, symbol, quantity: qty };
 
-        fetch(`http://localhost:8080/api/trade/sell`, {
+        fetch(`${API_BASE_URL}/api/trade/sell`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

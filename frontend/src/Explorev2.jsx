@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { API_BASE_URL } from './config';
 
 export default function Explore({ userId }) {
     const [symbol, setSymbol] = useState('');
@@ -105,10 +106,10 @@ export default function Explore({ userId }) {
             setIsPolling(false);
         }
 
-        fetch(`http://localhost:8080/api/stocks/${targetSymbol.toUpperCase()}/history?range=${targetRange}`)
+        fetch(`${API_BASE_URL}/api/stocks/${targetSymbol.toUpperCase()}/history?range=${targetRange}`)
             .then(res => res.ok ? res.json() : [])
             .then(historyData => {
-                fetch(`http://localhost:8080/api/stocks/${targetSymbol.toUpperCase()}`)
+                fetch(`${API_BASE_URL}/api/stocks/${targetSymbol.toUpperCase()}`)
                     .then(response => {
                         if (!response.ok) throw new Error("Stock not found");
                         return response.json();
@@ -156,7 +157,7 @@ export default function Explore({ userId }) {
         let isMounted = true;
         if (isPolling && symbol) {
             fastInterval = setInterval(() => {
-                fetch(`http://localhost:8080/api/stocks/${symbol.toUpperCase()}`)
+                fetch(`${API_BASE_URL}/api/stocks/${symbol.toUpperCase()}`)
                     .then(res => res.ok ? res.json() : null)
                     .then(liveData => {
                         if (isMounted && liveData) {
@@ -202,7 +203,7 @@ export default function Explore({ userId }) {
             return;
         }
         const payload = { userId, symbol: stockData.symbol, quantity: parseInt(quantity) };
-        fetch(`http://localhost:8080/api/trade/buy`, {
+        fetch(`${API_BASE_URL}/api/trade/buy`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)

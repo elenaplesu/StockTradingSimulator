@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_BASE_URL } from './config';
 
 export default function Learn({ userId }) {
     const [quizStarted, setQuizStarted] = useState(false);
@@ -18,7 +19,7 @@ export default function Learn({ userId }) {
         setError(null);
 
         // Fetch the quiz directly from your new AI Spring Boot endpoint
-        fetch(`http://localhost:8080/api/learn/ai-quiz/${userId}`)
+        fetch(`${API_BASE_URL}/api/learn/ai-quiz/${userId}`)
             .then(res => {
                 if (!res.ok) throw new Error("Failed to generate quiz");
                 return res.json();
