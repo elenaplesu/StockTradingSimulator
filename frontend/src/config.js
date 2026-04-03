@@ -1,1 +1,1 @@
-export const API_BASE_URL = "https://stocktradingsimulator-production.up.railway.app";
+export const API_BASE_URL = "https://stocktradingsimulatorthesis.onrender.com";
