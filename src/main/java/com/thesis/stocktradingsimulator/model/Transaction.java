@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Entity
 @Table(name = "transactions")
@@ -17,11 +18,13 @@ public class Transaction {
     @JsonIgnore
     private Portfolio portfolio;
 
+    @Column(updatable = false)
+    private LocalDateTime timestamp;
+
     private String type; // "BUY" / "SELL"
     private String symbol;
     private int quantity;
     private double executionPrice;
-    private LocalDateTime timestamp;
 
     public Transaction() {}
 
@@ -31,7 +34,7 @@ public class Transaction {
         this.symbol = symbol;
         this.quantity = quantity;
         this.executionPrice = executionPrice;
-        this.timestamp = LocalDateTime.now();
+        this.timestamp = LocalDateTime.now(ZoneOffset.UTC);
     }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

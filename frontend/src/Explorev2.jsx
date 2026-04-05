@@ -9,86 +9,60 @@ export default function Explore({ userId }) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [quantity, setQuantity] = useState('');
-    const [tradeMessage, setTradeMessage] = useState(null);
-    const [isTradeError, setIsTradeError] = useState(false);
+    const [notifications, setNotifications] = useState([]);
     const [chartData, setChartData] = useState([]);
     const [isPolling, setIsPolling] = useState(false);
     const [timeRange, setTimeRange] = useState('1D');
 
-    // HELPER: The Google Finance Padding Logic
+    const addNotification = (message, isError) => {
+        const id = Date.now();
+        setNotifications(prev => [...prev, { id, message, isError }]);
+
+        // Remove notification after 5 seconds
+        setTimeout(() => {
+            setNotifications(prev => prev.filter(notification => notification.id !== id));
+        }, 5000);
+    };
+
     const formatAndPadData = (apiHistory, livePrice, range) => {
         if (!apiHistory || apiHistory.length === 0) return [];
 
-        const enrichedData = apiHistory.map(p => {
-            const date = new Date(p.timestamp);
-            const nyDateString = date.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-            const nyTimeParts = date.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false }).split(':');
-            const mins = parseInt(nyTimeParts[0]) * 60 + parseInt(nyTimeParts[1]);
-            return { ...p, nyDateString, mins };
-        });
-
-        // 2. Filter out strict After-Hours (Keep only 9:30 AM to 4:00 PM)
-        let tradingData = enrichedData.filter(p => p.mins >= 570 && p.mins <= 960);
-
-        // 3. Find unique days and isolate the requested range (1 Day or 5 Days)
-        const uniqueDates = [...new Set(tradingData.map(p => p.nyDateString))];
-        const daysToKeep = range === '1D' ? 1 : 5;
-        const allowedDates = uniqueDates.slice(-daysToKeep);
-        let finalData = tradingData.filter(p => allowedDates.includes(p.nyDateString));
-
-        if (finalData.length === 0) return [];
-
+        let finalData = [...apiHistory];
         const lastHistoryPoint = finalData[finalData.length - 1];
-        const currentNyTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
-        const currentNyMins = currentNyTime.getHours() * 60 + currentNyTime.getMinutes();
-        const isWeekend = currentNyTime.getDay() === 0 || currentNyTime.getDay() === 6;
+        const now = Date.now();
 
-        const marketIsOpen = currentNyMins >= 570 && currentNyMins < 960 && !isWeekend;
-
-        if (marketIsOpen) {
-            // Market is OPEN: Insert a dot at the EXACT current time
+        // Add Live Price Dot (only if the market is actively open)
+        if (isMarketCurrentlyOpen) {
             finalData.push({
-                timestamp: Date.now(),
-                price: livePrice,
-                nyDateString: currentNyTime.toLocaleDateString('en-US'),
-                mins: currentNyMins
+                timestamp: now,
+                price: livePrice
             });
-        } else {
-            // Market is CLOSED: Guarantee a dot exists exactly at 4:00 PM (960 mins)
-            if (lastHistoryPoint.mins < 960) {
-                const diffMins = 960 - lastHistoryPoint.mins;
-                finalData.push({
-                    timestamp: lastHistoryPoint.timestamp + (diffMins * 60 * 1000),
-                    price: livePrice,
-                    nyDateString: lastHistoryPoint.nyDateString,
-                    mins: 960
-                });
-            } else {
-                finalData[finalData.length - 1].price = livePrice;
-            }
         }
 
-        // FUTURE PADDING: Generate empty slots up to 4:00 PM
-        const stepMs = range === '1D' ? 5 * 60 * 1000 : 15 * 60 * 1000;
-        let currentPadTime = lastHistoryPoint.timestamp + stepMs;
+        // PADDING LOGIC (For both 1D and 5D)
+        if (isMarketCurrentlyOpen) {
+            // Use 5-min steps for 1D, and 15-min steps for 5D
+            const stepMs = range === '1D' ? 5 * 60 * 1000 : 15 * 60 * 1000;
+            let currentPadTime = now + stepMs;
 
-        while (true) {
-            const padDate = new Date(currentPadTime);
-            const nyDateStr = padDate.toLocaleDateString('en-US', { timeZone: 'America/New_York' });
-            const nyTimeParts = padDate.toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour12: false }).split(':');
-            const mins = parseInt(nyTimeParts[0]) * 60 + parseInt(nyTimeParts[1]);
+            const lastDateString = new Date(lastHistoryPoint.timestamp).toDateString();
+            const firstPointOfCurrentDay = finalData.find(p =>
+                new Date(p.timestamp).toDateString() === lastDateString
+            );
 
-            if (nyDateStr !== lastHistoryPoint.nyDateString || mins > 960) {
-                break; // Stop padding if we hit 4:00 PM or cross into tomorrow
+            if (firstPointOfCurrentDay) {
+                // A standard trading day is exactly 6.5 hours
+                const marketCloseTime = firstPointOfCurrentDay.timestamp + (6.5 * 60 * 60 * 1000);
+
+                // Fill the remainder of TODAY with blank space
+                while (currentPadTime <= marketCloseTime) {
+                    finalData.push({
+                        timestamp: currentPadTime,
+                        price: null
+                    });
+                    currentPadTime += stepMs;
+                }
             }
-
-            if (currentPadTime > Date.now()) {
-                finalData.push({
-                    timestamp: currentPadTime,
-                    price: null // BLANK SPACE FOR THE FUTURE
-                });
-            }
-            currentPadTime += stepMs;
         }
 
         finalData.sort((a, b) => a.timestamp - b.timestamp);
@@ -102,7 +76,6 @@ export default function Explore({ userId }) {
             setChartData([]);
             setLoading(true);
             setError(null);
-            setTradeMessage(null);
             setIsPolling(false);
         }
 
@@ -198,8 +171,7 @@ export default function Explore({ userId }) {
 
     const handleBuy = () => {
         if (!quantity || quantity <= 0) {
-            setIsTradeError(true);
-            setTradeMessage("Please enter a valid quantity.");
+            addNotification("Please enter a valid quantity.", true);
             return;
         }
         const payload = { userId, symbol: stockData.symbol, quantity: parseInt(quantity) };
@@ -214,13 +186,11 @@ export default function Explore({ userId }) {
                 return text;
             })
             .then(msg => {
-                setIsTradeError(false);
-                setTradeMessage(msg);
+                addNotification(msg, false);
                 setQuantity('');
             })
             .catch(err => {
-                setIsTradeError(true);
-                setTradeMessage(err.message);
+                addNotification(err.message, true);
             });
     };
 
@@ -246,6 +216,72 @@ export default function Explore({ userId }) {
                     <button type="submit" className="btn btn-primary btn-lg shadow-sm px-4">Search</button>
                 </form>
             </div>
+
+            <div style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                alignItems: 'flex-end',
+                width: '350px'
+            }}>
+                {notifications.map((notification) => (
+                    <div
+                        key={notification.id}
+                        className={`alert ${notification.isError ? 'alert-danger' : 'alert-success'} shadow-lg alert-dismissible fade show m-0`}
+                        style={{
+                            width: '350px',
+                            minHeight: '80px',
+                            maxHeight: '80px',
+                            borderLeft: `5px solid ${notification.isError ? '#dc3545' : '#198754'}`,
+                            animation: 'slideIn 0.3s ease-out',
+                            position: 'relative',
+                            opacity: 1,
+                            padding: '12px 35px 12px 15px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            overflow: 'hidden'
+                        }}
+                        role="alert"
+                    >
+                        <div className="fw-bold mb-1" style={{ fontSize: '14px' }}>
+                            {notification.isError ? 'Purchase Failed' : 'Purchase Successful'}
+                        </div>
+                        <div style={{
+                            fontSize: '12px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            {notification.message}
+                        </div>
+
+                        <button
+                            type="button"
+                            className="btn-close"
+                            style={{ position: 'absolute', right: '10px', top: '10px' }}
+                            onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
+                        ></button>
+                    </div>
+                ))}
+            </div>
+
+            <style jsx>{`
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+            `}</style>
 
             {loading && (
                 <div className="text-muted mb-4">
@@ -348,7 +384,6 @@ export default function Explore({ userId }) {
                                 ) : (
                                     <div className="p-3 bg-white border rounded text-center"><p className="text-muted mb-0">Want to trade? <Link to="/login" className="fw-bold text-primary text-decoration-none">Log in</Link></p></div>
                                 )}
-                                {tradeMessage && <div className={`alert mt-3 p-2 ${isTradeError ? 'alert-danger' : 'alert-success'}`}>{tradeMessage}</div>}
                             </div>
                         </div>
                     </div>

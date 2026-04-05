@@ -7,8 +7,7 @@ export default function Portfolio({userId}) {
     const [loading, setLoading] = useState(true);
 
     const [sellQuantities, setSellQuantities] = useState({});
-    const [tradeMessage, setTradeMessage] = useState(null);
-    const [isTradeError, setIsTradeError] = useState(false);
+    const [notifications, setNotifications] = useState([]);
 
     const fetchPortfolio = () => {
         // 1. Fetch Analytics
@@ -39,14 +38,34 @@ export default function Portfolio({userId}) {
     };
 
     useEffect(() => {
-        if (userId) fetchPortfolio();
+        if (userId) {
+            // Fetch immediately on load
+            fetchPortfolio();
+
+            // Silently refresh the analytics every 20 seconds
+            const intervalId = setInterval(() => {
+                fetchPortfolio();
+            }, 20 * 1000);
+
+            // Clean up the timer if they leave the page
+            return () => clearInterval(intervalId);
+        }
     }, [userId]);
+
+    const addNotification = (message, isError) => {
+        const id = Date.now();
+        setNotifications(prev => [...prev, { id, message, isError }]);
+
+        // Remove notification after 5 seconds
+        setTimeout(() => {
+            setNotifications(prev => prev.filter(notification => notification.id !== id));
+        }, 5000);
+    };
 
     const handleSell = (symbol) => {
         const qty = parseInt(sellQuantities[symbol]);
         if (!qty || qty <= 0) {
-            setIsTradeError(true);
-            setTradeMessage(`Please enter a valid quantity to sell for ${symbol}.`);
+            addNotification(`Please enter a valid quantity to sell for ${symbol}.`, true);
             return;
         }
 
@@ -63,14 +82,12 @@ export default function Portfolio({userId}) {
                 return text;
             })
             .then(message => {
-                setIsTradeError(false);
-                setTradeMessage(message);
+                addNotification(message, false);
                 setSellQuantities(prev => ({...prev, [symbol]: ''}));
                 fetchPortfolio();
             })
             .catch(err => {
-                setIsTradeError(true);
-                setTradeMessage(err.message);
+                addNotification(err.message, true);
             });
     };
 
@@ -122,12 +139,71 @@ export default function Portfolio({userId}) {
                 </div>
             </div>
 
-            {tradeMessage && (
-                <div className={`alert ${isTradeError ? 'alert-danger' : 'alert-success'} alert-dismissible shadow-sm fade show`}>
-                    {tradeMessage}
-                    <button type="button" className="btn-close" onClick={() => setTradeMessage(null)}></button>
-                </div>
-            )}
+            <div style={{
+                position: 'fixed',
+                bottom: '20px',
+                right: '20px',
+                zIndex: 9999,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                alignItems: 'flex-end',
+                width: '350px'
+            }}>
+                {notifications.map((notification) => (
+                    <div
+                        key={notification.id}
+                        className={`alert ${notification.isError ? 'alert-danger' : 'alert-success'} shadow-lg alert-dismissible fade show m-0`}
+                        style={{
+                            width: '350px',
+                            minHeight: '80px',
+                            maxHeight: '80px',
+                            borderLeft: `5px solid ${notification.isError ? '#dc3545' : '#198754'}`,
+                            animation: 'slideIn 0.3s ease-out',
+                            position: 'relative',
+                            opacity: 1,
+                            padding: '12px 35px 12px 15px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'center',
+                            overflow: 'hidden'
+                        }}
+                        role="alert"
+                    >
+                        <div className="fw-bold mb-1" style={{ fontSize: '14px' }}>
+                            {notification.isError ? 'Trade Failed' : 'Trade Executed'}
+                        </div>
+                        <div style={{
+                            fontSize: '12px',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap'
+                        }}>
+                            {notification.message}
+                        </div>
+
+                        <button
+                            type="button"
+                            className="btn-close"
+                            style={{ position: 'absolute', right: '10px', top: '10px' }}
+                            onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
+                        ></button>
+                    </div>
+                ))}
+            </div>
+
+            <style jsx>{`
+                @keyframes slideIn {
+                    from {
+                        transform: translateX(100%);
+                        opacity: 0;
+                    }
+                    to {
+                        transform: translateX(0);
+                        opacity: 1;
+                    }
+                }
+            `}</style>
 
             <h4 className="mt-4 fw-bold text-muted">Quantitative Asset Breakdown</h4>
             <div className="table-responsive shadow-sm rounded border bg-white mb-5">
@@ -234,7 +310,7 @@ export default function Portfolio({userId}) {
                             return (
                                 <tr key={tx.id}>
                                     <td className="text-muted">
-                                        {new Date(tx.timestamp).toLocaleString([], {
+                                        {new Date(tx.timestamp.endsWith('Z') ? tx.timestamp : tx.timestamp + 'Z').toLocaleString([], {
                                             year: 'numeric', month: 'short', day: 'numeric',
                                             hour: '2-digit', minute: '2-digit'
                                         })}

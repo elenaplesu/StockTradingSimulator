@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom'; // NEW: Imported Link
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import { API_BASE_URL } from './config';
 
 export default function Login({ setUserId }) {
@@ -7,6 +7,14 @@ export default function Login({ setUserId }) {
     const [password, setPassword] = useState('');
     const [error, setError] = useState(null);
     const navigate = useNavigate();
+
+    //  Auto-dismiss the error after 5 seconds to match the rest of the app
+    useEffect(() => {
+        if (error) {
+            const timer = setTimeout(() => setError(null), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [error]);
 
     const handleLogin = (e) => {
         e.preventDefault();
@@ -30,13 +38,31 @@ export default function Login({ setUserId }) {
 
     return (
         <div className="container mt-5">
+
+            {error && (
+                <div
+                    className="alert alert-danger shadow-lg m-0"
+                    style={{
+                        position: 'fixed',
+                        bottom: '20px',
+                        right: '20px',
+                        zIndex: 9999,
+                        minWidth: '350px',
+                        borderLeft: '5px solid #dc3545',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.15)'
+                    }}
+                    role="alert"
+                >
+                    <div className="fw-bold mb-1">Login Failed</div>
+                    <div style={{ fontSize: '0.9rem' }}>{error}</div>
+                </div>
+            )}
+
             <div className="row justify-content-center">
                 <div className="col-md-5">
                     <div className="card shadow-sm border-0">
                         <div className="card-body bg-light rounded p-4">
                             <h3 className="card-title text-center mb-4 fw-bold">Login</h3>
-
-                            {error && <div className="alert alert-danger">{error}</div>}
 
                             <form onSubmit={handleLogin}>
                                 <div className="mb-3">

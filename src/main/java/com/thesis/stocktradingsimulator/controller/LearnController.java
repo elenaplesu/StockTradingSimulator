@@ -6,7 +6,6 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/learn")
-@CrossOrigin(origins = "*")
 public class LearnController {
 
     private final AiQuizService aiQuizService;
@@ -19,5 +18,10 @@ public class LearnController {
     public ResponseEntity<String> getPersonalizedQuiz(@PathVariable Long userId) {
         String quizJson = aiQuizService.generatePersonalizedQuiz(userId);
         return ResponseEntity.ok(quizJson);
+    }
+
+    @GetMapping("/general-quiz")
+    public ResponseEntity<String> getGeneralQuiz() {
+        return ResponseEntity.ok(aiQuizService.getFallbackQuiz());
     }
 }

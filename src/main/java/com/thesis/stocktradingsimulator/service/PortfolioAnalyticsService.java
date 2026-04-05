@@ -6,6 +6,7 @@ import com.thesis.stocktradingsimulator.model.Holding;
 import com.thesis.stocktradingsimulator.model.Portfolio;
 import com.thesis.stocktradingsimulator.model.User;
 import com.thesis.stocktradingsimulator.repository.HoldingRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -20,7 +21,8 @@ public class PortfolioAnalyticsService {
     private final HoldingRepository holdingRepository;
     private final RestTemplate restTemplate;
 
-    private final String FINNHUB_KEY = "d6krbspr01qmopd1r680d6krbspr01qmopd1r68g";
+    @Value("${stock.api.key}")
+    private String FINNHUB_KEY;
 
     public PortfolioAnalyticsService(UserService userService, HoldingRepository holdingRepository) {
         this.userService = userService;

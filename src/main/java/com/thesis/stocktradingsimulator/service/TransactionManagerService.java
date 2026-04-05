@@ -8,6 +8,8 @@ import com.thesis.stocktradingsimulator.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 @Service
@@ -69,7 +71,6 @@ public class TransactionManagerService {
 
         Transaction transaction = new Transaction(portfolio, "BUY", symbol.toUpperCase(), quantity, price);
         transactionRepository.save(transaction);
-
         return "Success: Bought " + quantity + " shares of " + symbol.toUpperCase() + " for $" + String.format("%.2f", totalCostRounded);
     }
     @Transactional
