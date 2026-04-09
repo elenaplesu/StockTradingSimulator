@@ -1,7 +1,6 @@
 package com.thesis.stocktradingsimulator.repository;
 
 import com.thesis.stocktradingsimulator.model.Holding;
-import com.thesis.stocktradingsimulator.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

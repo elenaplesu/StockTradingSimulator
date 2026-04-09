@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { API_BASE_URL } from './config';
+import {API_BASE_URL, getCsrfToken} from './config';
 
 export default function Register({ setUserId }) {
     const [username, setUsername] = useState('');
@@ -27,21 +27,34 @@ export default function Register({ setUserId }) {
             return;
         }
 
-        fetch(`${API_BASE_URL}/api/users/register`, {
+        fetch(`${API_BASE_URL}/api/auth/register`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()
+            },
             body: JSON.stringify({ username, password })
         })
             .then(async response => {
+                const rawText = await response.text();
+
                 if (!response.ok) {
-                    const text = await response.text();
-                    throw new Error(text || "Registration failed");
+                    let errorMessage = "Registration failed";
+                    try {
+                        const errorData = JSON.parse(rawText);
+                        errorMessage = errorData.message || errorData.error || response.statusText;
+                    } catch (e) {
+                        errorMessage = rawText || response.statusText;
+                    }
+                    throw new Error(errorMessage);
                 }
-                return response.json(); // Grabs the newly created User ID
+
+                return JSON.parse(rawText);
             })
-            .then(id => {
-                setUserId(id);          // Instantly log them in
-                navigate('/portfolio'); // Teleport to the Portfolio page
+            .then(userData => {
+                setUserId(userData.id);
+                navigate('/portfolio');
             })
             .catch(err => setError(err.message));
     };

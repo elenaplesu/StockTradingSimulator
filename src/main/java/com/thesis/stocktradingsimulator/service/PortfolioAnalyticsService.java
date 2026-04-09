@@ -4,43 +4,27 @@ import com.thesis.stocktradingsimulator.dto.EnrichedHoldingDTO;
 import com.thesis.stocktradingsimulator.dto.PortfolioAnalyticsDTO;
 import com.thesis.stocktradingsimulator.model.Holding;
 import com.thesis.stocktradingsimulator.model.Portfolio;
+import com.thesis.stocktradingsimulator.model.StockQuote;
 import com.thesis.stocktradingsimulator.model.User;
 import com.thesis.stocktradingsimulator.repository.HoldingRepository;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class PortfolioAnalyticsService {
 
     private final UserService userService;
     private final HoldingRepository holdingRepository;
-    private final RestTemplate restTemplate;
+    private final MarketDataService marketDataService;
 
-    @Value("${stock.api.key}")
-    private String FINNHUB_KEY;
-
-    public PortfolioAnalyticsService(UserService userService, HoldingRepository holdingRepository) {
+    public PortfolioAnalyticsService(UserService userService, HoldingRepository holdingRepository, MarketDataService marketDataService) {
         this.userService = userService;
         this.holdingRepository = holdingRepository;
-        this.restTemplate = new RestTemplate();
-    }
-
-    private double fetchLivePrice(String symbol) {
-        try {
-            String url = String.format("https://finnhub.io/api/v1/quote?symbol=%s&token=%s", symbol.toUpperCase(), FINNHUB_KEY);
-            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
-            if (response != null && response.get("c") != null) {
-                return Double.parseDouble(response.get("c").toString());
-            }
-        } catch (Exception e) {
-            System.err.println("Failed to fetch price for " + symbol + ": " + e.getMessage());
-        }
-        return 0.0;
+        this.marketDataService = marketDataService;
     }
 
     public PortfolioAnalyticsDTO generateAnalytics(Long userId) {
@@ -49,69 +33,94 @@ public class PortfolioAnalyticsService {
         List<Holding> rawHoldings = holdingRepository.findByPortfolioId(portfolio.getId());
 
         if (rawHoldings.isEmpty()) {
-            return new PortfolioAnalyticsDTO(user.getCashBalance(), 0.0, user.getCashBalance(), 0.0, 0.0, 0.0, new ArrayList<>());
+            return new PortfolioAnalyticsDTO(
+                    user.getCashBalance(), BigDecimal.ZERO, user.getCashBalance(),
+                    BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO, new ArrayList<>()
+            );
         }
 
-        double totalEquity = 0.0;
-        double totalCostBasis = 0.0;
-        List<Double> individualReturns = new ArrayList<>();
+        BigDecimal totalEquity = BigDecimal.ZERO;
+        BigDecimal totalCostBasis = BigDecimal.ZERO;
+        List<BigDecimal> individualReturns = new ArrayList<>();
         List<EnrichedHoldingDTO> tempHoldings = new ArrayList<>();
 
-
         for (Holding holding : rawHoldings) {
-            double livePrice = fetchLivePrice(holding.getSymbol());
+            StockQuote quote = marketDataService.getLivePrice(holding.getSymbol());
+            BigDecimal livePrice = (quote != null && quote.getCurrentPrice() != null)
+                    ? quote.getCurrentPrice()
+                    : holding.getAverageBuyPrice(); // Fallback to avg buy price if API fails
 
-            if (livePrice == 0.0) livePrice = holding.getAverageBuyPrice();
+            BigDecimal quantity = BigDecimal.valueOf(holding.getQuantity());
 
-            double currentHoldingValue = holding.getQuantity() * livePrice;
-            double costBasis = holding.getQuantity() * holding.getAverageBuyPrice();
+            BigDecimal currentHoldingValue = quantity.multiply(livePrice).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal costBasis = quantity.multiply(holding.getAverageBuyPrice()).setScale(2, RoundingMode.HALF_UP);
 
-            totalEquity += currentHoldingValue;
-            totalCostBasis += costBasis;
+            totalEquity = totalEquity.add(currentHoldingValue);
+            totalCostBasis = totalCostBasis.add(costBasis);
 
-            // R_i = (P_i - C_i) / C_i
-            double holdingROI = ((livePrice - holding.getAverageBuyPrice()) / holding.getAverageBuyPrice()) * 100;
+            BigDecimal holdingROI = BigDecimal.ZERO;
+            if (holding.getAverageBuyPrice().compareTo(BigDecimal.ZERO) > 0) {
+                holdingROI = livePrice.subtract(holding.getAverageBuyPrice())
+                        .divide(holding.getAverageBuyPrice(), 4, RoundingMode.HALF_UP)
+                        .multiply(new BigDecimal("100"))
+                        .setScale(2, RoundingMode.HALF_UP);
+            }
+
             individualReturns.add(holdingROI);
 
             // Temporarily store with 0.0 weight
             tempHoldings.add(new EnrichedHoldingDTO(
                     holding.getSymbol(), holding.getQuantity(), holding.getAverageBuyPrice(),
-                    livePrice, currentHoldingValue, 0.0, holdingROI
+                    livePrice, currentHoldingValue, BigDecimal.ZERO, holdingROI
             ));
         }
 
-        double hhi = 0.0;
+        BigDecimal hhi = BigDecimal.ZERO;
         List<EnrichedHoldingDTO> finalizedHoldings = new ArrayList<>();
 
         // Calculate Asset Weights (W_i) and HHI
         for (EnrichedHoldingDTO dto : tempHoldings) {
-            double weight = dto.getTotalValue() / totalEquity;
-            hhi += Math.pow(weight, 2);
+            BigDecimal weight = BigDecimal.ZERO;
+            if (totalEquity.compareTo(BigDecimal.ZERO) > 0) {
+                weight = dto.totalValue().divide(totalEquity, 4, RoundingMode.HALF_UP);
+            }
 
-            // Rebuild DTO with the correct weight percentage
+            hhi = hhi.add(weight.pow(2));
+
+            BigDecimal weightPercentage = weight.multiply(new BigDecimal("100")).setScale(2, RoundingMode.HALF_UP);
+
             finalizedHoldings.add(new EnrichedHoldingDTO(
-                    dto.getSymbol(), dto.getQuantity(), dto.getAverageBuyPrice(),
-                    dto.getCurrentPrice(), dto.getTotalValue(), weight * 100, dto.getReturnOnInvestment()
+                    dto.symbol(), dto.quantity(), dto.averageBuyPrice(),
+                    dto.currentPrice(), dto.totalValue(), weightPercentage, dto.returnOnInvestment()
             ));
         }
 
-        double normalizedHHI = hhi * 10000;
+        BigDecimal normalizedHHI = hhi.multiply(new BigDecimal("10000")).setScale(2, RoundingMode.HALF_UP);
 
-        // Calculate Aggregate ROI
-        double aggregateROI = ((totalEquity - totalCostBasis) / totalCostBasis) * 100;
-
-        // Calculate Cross-Sectional Variance (Sigma Squared)
-        double sumReturns = 0.0;
-        for (double r : individualReturns) { sumReturns += r; }
-        double meanReturn = sumReturns / individualReturns.size();
-
-        double varianceSum = 0.0;
-        for (double r : individualReturns) {
-            varianceSum += Math.pow(r - meanReturn, 2);
+        BigDecimal aggregateROI = BigDecimal.ZERO;
+        if (totalCostBasis.compareTo(BigDecimal.ZERO) > 0) {
+            aggregateROI = totalEquity.subtract(totalCostBasis)
+                    .divide(totalCostBasis, 4, RoundingMode.HALF_UP)
+                    .multiply(new BigDecimal("100"))
+                    .setScale(2, RoundingMode.HALF_UP);
         }
-        double crossSectionalVariance = varianceSum / individualReturns.size();
 
-        double netWorth = user.getCashBalance() + totalEquity;
+        BigDecimal sumReturns = BigDecimal.ZERO;
+        for (BigDecimal r : individualReturns) {
+            sumReturns = sumReturns.add(r);
+        }
+
+        BigDecimal count = BigDecimal.valueOf(individualReturns.size());
+        BigDecimal meanReturn = sumReturns.divide(count, 4, RoundingMode.HALF_UP);
+
+        BigDecimal varianceSum = BigDecimal.ZERO;
+        for (BigDecimal r : individualReturns) {
+            BigDecimal difference = r.subtract(meanReturn);
+            varianceSum = varianceSum.add(difference.pow(2));
+        }
+        BigDecimal crossSectionalVariance = varianceSum.divide(count, 4, RoundingMode.HALF_UP);
+
+        BigDecimal netWorth = user.getCashBalance().add(totalEquity);
 
         return new PortfolioAnalyticsDTO(
                 user.getCashBalance(),

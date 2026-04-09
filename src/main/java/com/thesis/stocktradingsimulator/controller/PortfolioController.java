@@ -50,13 +50,8 @@ public class PortfolioController {
 
     @GetMapping("/{userId}/analytics")
     public ResponseEntity<PortfolioAnalyticsDTO> getPortfolioAnalytics(@PathVariable Long userId) {
-        try {
-            PortfolioAnalyticsDTO analytics = analyticsService.generateAnalytics(userId);
-            return ResponseEntity.ok(analytics);
-        } catch (Exception e) {
-            System.err.println("Error generating analytics: " + e.getMessage());
-            return ResponseEntity.internalServerError().build();
-        }
+        PortfolioAnalyticsDTO analytics = analyticsService.generateAnalytics(userId);
+        return ResponseEntity.ok(analytics);
     }
 
     @GetMapping("/{userId}/transactions")

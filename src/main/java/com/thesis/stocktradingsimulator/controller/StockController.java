@@ -3,10 +3,12 @@ package com.thesis.stocktradingsimulator.controller;
 import com.thesis.stocktradingsimulator.model.StockQuote;
 import com.thesis.stocktradingsimulator.dto.ChartPoint;
 import com.thesis.stocktradingsimulator.service.MarketDataService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/stocks")
@@ -19,13 +21,14 @@ public class StockController {
     }
 
     @GetMapping("/{symbol}")
-    public ResponseEntity<StockQuote> getStockPrice(@PathVariable String symbol) {
+    public ResponseEntity<?> getStockPrice(@PathVariable String symbol) {
         StockQuote quote = marketDataService.getLivePrice(symbol);
 
         if (quote != null) {
             return ResponseEntity.ok(quote);
         } else {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", "Stock symbol not found."));
         }
     }
 
@@ -39,7 +42,8 @@ public class StockController {
         if (history != null && !history.isEmpty()) {
             return ResponseEntity.ok(history);
         } else {
-            return ResponseEntity.badRequest().body("No historical data available.");
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "No historical data available."));
         }
     }
 }

@@ -3,8 +3,12 @@ package com.thesis.stocktradingsimulator.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
+
 @Entity
-@Table(name = "holdings")
+@Table(name = "holdings", indexes = {
+        @Index(name = "idx_holding_portfolio_symbol", columnList = "portfolio_id, symbol", unique = true)
+})
 public class Holding {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -12,18 +16,18 @@ public class Holding {
 
     @ManyToOne
     @JoinColumn(name = "portfolio_id", nullable = false)
-    @JsonIgnore // Prevents infinite loops when we send data to React
+    @JsonIgnore
     private Portfolio portfolio;
 
     @Column(nullable = false)
     private String symbol;
 
     private int quantity;
-    private double averageBuyPrice;
+    private BigDecimal averageBuyPrice;
 
     public Holding() {}
 
-    public Holding(Portfolio portfolio, String symbol, int quantity, double averageBuyPrice) {
+    public Holding(Portfolio portfolio, String symbol, int quantity, BigDecimal averageBuyPrice) {
         this.portfolio = portfolio;
         this.symbol = symbol;
         this.quantity = quantity;
@@ -42,6 +46,6 @@ public class Holding {
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
 
-    public double getAverageBuyPrice() { return averageBuyPrice; }
-    public void setAverageBuyPrice(double averageBuyPrice) { this.averageBuyPrice = averageBuyPrice; }
+    public BigDecimal getAverageBuyPrice() { return averageBuyPrice; }
+    public void setAverageBuyPrice(BigDecimal averageBuyPrice) { this.averageBuyPrice = averageBuyPrice; }
 }

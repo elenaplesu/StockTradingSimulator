@@ -1,6 +1,9 @@
 package com.thesis.stocktradingsimulator.service;
 
+import com.thesis.stocktradingsimulator.exception.InsufficientSharesException;
+import com.thesis.stocktradingsimulator.exception.ResourceNotFoundException;
 import com.thesis.stocktradingsimulator.model.*;
+import com.thesis.stocktradingsimulator.model.Transaction.TransactionType;
 import com.thesis.stocktradingsimulator.repository.HoldingRepository;
 import com.thesis.stocktradingsimulator.repository.PortfolioRepository;
 import com.thesis.stocktradingsimulator.repository.TransactionRepository;
@@ -8,8 +11,8 @@ import com.thesis.stocktradingsimulator.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.Optional;
 
 @Service
@@ -29,94 +32,72 @@ public class TransactionManagerService {
         this.transactionRepository = transactionRepository;
         this.marketDataService = marketDataService;
     }
+
     @Transactional
-    public String executeBuy(Long userId, String symbol, int quantity) {
-        if (quantity <= 0) return "Error: Quantity must be greater than zero.";
+    public Transaction executeBuy(Long userId, String symbol, int quantity) {
+        validateQuantity(quantity);
 
-        User user = userRepository.findById(userId).orElse(null);
-        Portfolio portfolio = portfolioRepository.findByUserId(userId).orElse(null);
-        if (user == null || portfolio == null) return "Error: User or Portfolio not found.";
+        User user = getUserOrThrow(userId);
+        Portfolio portfolio = getPortfolioOrThrow(userId);
 
+        BigDecimal price = getValidStockPrice(symbol);
+        BigDecimal totalCost = calculateTotalValue(price, quantity);
 
-        StockQuote quote = marketDataService.getLivePrice(symbol);
-        if (quote == null) return "Error: Invalid stock symbol or API error.";
-        double price = quote.getCurrentPrice();
-        double totalCost = price * quantity;
-        double totalCostRounded=Math.round(totalCost * 100.0) / 100.0;
-
-        if (user.getCashBalance() < totalCostRounded) {
-            return "Error: Insufficient funds. Need $" + totalCostRounded + " but have $" + user.getCashBalance();
-        }
-
-        user.setCashBalance(user.getCashBalance() - totalCostRounded);
-        userRepository.save(user);
+        user.deductFunds(totalCost);
+        userRepository.saveAndFlush(user);
 
         Optional<Holding> holdingOption = holdingRepository.findByPortfolioIdAndSymbol(portfolio.getId(), symbol.toUpperCase());
         if(holdingOption.isPresent()){
             Holding holding = holdingOption.get();
-            // Calculate new average buy price
-            double totalSpentPreviously = holding.getQuantity() * holding.getAverageBuyPrice();
-            double newTotalSpent = totalSpentPreviously + totalCostRounded;
+            BigDecimal prevQty = BigDecimal.valueOf(holding.getQuantity());
+            BigDecimal totalSpentPreviously = prevQty.multiply(holding.getAverageBuyPrice());
+            BigDecimal newTotalSpent = totalSpentPreviously.add(totalCost);
+
             int newQuantity = holding.getQuantity() + quantity;
+            BigDecimal newAveragePrice = newTotalSpent.divide(BigDecimal.valueOf(newQuantity), 2, RoundingMode.HALF_UP);
 
             holding.setQuantity(newQuantity);
-            double newAveragePrice = newTotalSpent / newQuantity;
-            holding.setAverageBuyPrice(Math.round(newAveragePrice * 100.0) / 100.0);
-            holdingRepository.save(holding);
-        }else {
-            // Create a brand new holding
+            holding.setAverageBuyPrice(newAveragePrice);
+            holdingRepository.saveAndFlush(holding);
+        } else {
             Holding newHolding = new Holding(portfolio, symbol.toUpperCase(), quantity, price);
-            holdingRepository.save(newHolding);
+            holdingRepository.saveAndFlush(newHolding);
         }
 
-        Transaction transaction = new Transaction(portfolio, "BUY", symbol.toUpperCase(), quantity, price);
-        transactionRepository.save(transaction);
-        return "Success: Bought " + quantity + " shares of " + symbol.toUpperCase() + " for $" + String.format("%.2f", totalCostRounded);
+        Transaction transaction = new Transaction(portfolio, TransactionType.BUY, symbol.toUpperCase(), quantity, price);
+        return transactionRepository.save(transaction);
     }
+
     @Transactional
-    public String executeSell(Long userId, String symbol, int quantity) {
-        if (quantity <= 0) return "Error: Quantity must be greater than zero.";
-        //note to remove code repetition later
-        User user = userRepository.findById(userId).orElse(null);
-        Portfolio portfolio = portfolioRepository.findByUserId(userId).orElse(null);
-        if (user == null || portfolio == null) return "Error: User or Portfolio not found.";
+    public Transaction executeSell(Long userId, String symbol, int quantity) {
+        validateQuantity(quantity);
 
-        Optional<Holding> holdingOption = holdingRepository.findByPortfolioIdAndSymbol(portfolio.getId(), symbol.toUpperCase());
-        if (holdingOption.isEmpty()) {
-            return "Error: You do not own any shares of " + symbol.toUpperCase();
-        }
+        User user = getUserOrThrow(userId);
+        Portfolio portfolio = getPortfolioOrThrow(userId);
 
-        Holding holding = holdingOption.get();
+        Holding holding = holdingRepository.findByPortfolioIdAndSymbol(portfolio.getId(), symbol.toUpperCase())
+                .orElseThrow(() -> new InsufficientSharesException("You do not own any shares of " + symbol.toUpperCase()));
+
         if (holding.getQuantity() < quantity) {
-            return "Error: Insufficient shares. You only have " + holding.getQuantity() + " shares.";
+            throw new InsufficientSharesException("Insufficient shares. You only have " + holding.getQuantity());
         }
 
-        StockQuote quote = marketDataService.getLivePrice(symbol);
-        if (quote == null) return "Error: Invalid stock symbol or API error.";
+        BigDecimal price = getValidStockPrice(symbol);
+        BigDecimal totalRevenue = calculateTotalValue(price, quantity);
 
-        double price = quote.getCurrentPrice();
-        double totalRevenue = price * quantity;
-        double totalRevenueRounded = Math.round(totalRevenue * 100.0) / 100.0;
-
-        user.setCashBalance(user.getCashBalance() + totalRevenueRounded);
-        userRepository.save(user);
-
+        user.addFunds(totalRevenue);
+        userRepository.saveAndFlush(user);
 
         int remainingQuantity = holding.getQuantity() - quantity;
         if (remainingQuantity == 0) {
-            // If they sold everything, remove the holding entirely
             holdingRepository.delete(holding);
         } else {
-            // Otherwise, just update (average buy price stays the same)
             holding.setQuantity(remainingQuantity);
-            holdingRepository.save(holding);
+            holdingRepository.saveAndFlush(holding);
         }
 
-
-        Transaction transaction = new Transaction(portfolio, "SELL", symbol.toUpperCase(), quantity, price);
-        transactionRepository.save(transaction);
-
-        return "Success: Sold " + quantity + " shares of " + symbol.toUpperCase() + " for $" + String.format("%.2f", totalRevenueRounded);
+        Transaction transaction = new Transaction(portfolio, TransactionType.SELL, symbol.toUpperCase(), quantity, price);
+        return transactionRepository.save(transaction);
     }
 
     public java.util.List<Transaction> getTransactionHistory(Long userId) {
@@ -127,4 +108,31 @@ public class TransactionManagerService {
         return transactionRepository.findByPortfolioIdOrderByTimestampDesc(portfolio.getId());
     }
 
+    private void validateQuantity(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("Quantity must be greater than zero.");
+        }
+    }
+
+    private User getUserOrThrow(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found."));
+    }
+
+    private Portfolio getPortfolioOrThrow(Long userId) {
+        return portfolioRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Portfolio not found."));
+    }
+
+    private BigDecimal getValidStockPrice(String symbol) {
+        StockQuote quote = marketDataService.getLivePrice(symbol);
+        if (quote == null) {
+            throw new ResourceNotFoundException("Invalid stock symbol or API error.");
+        }
+        return quote.getCurrentPrice();
+    }
+
+    private BigDecimal calculateTotalValue(BigDecimal price, int quantity) {
+        return price.multiply(BigDecimal.valueOf(quantity)).setScale(2, RoundingMode.HALF_UP);
+    }
 }

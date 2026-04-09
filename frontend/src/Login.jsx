@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { API_BASE_URL } from './config';
+import {API_BASE_URL, getCsrfToken} from './config';
 
 export default function Login({ setUserId }) {
     const [username, setUsername] = useState('');
@@ -8,7 +8,7 @@ export default function Login({ setUserId }) {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    //  Auto-dismiss the error after 5 seconds to match the rest of the app
+    // Auto-dismiss the error after 5 seconds
     useEffect(() => {
         if (error) {
             const timer = setTimeout(() => setError(null), 5000);
@@ -20,17 +20,38 @@ export default function Login({ setUserId }) {
         e.preventDefault();
         setError(null);
 
-        fetch(`${API_BASE_URL}/api/users/login`, {
+        fetch(`${API_BASE_URL}/api/auth/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()
+            },
             body: JSON.stringify({ username, password })
         })
             .then(async response => {
-                if (!response.ok) throw new Error("Invalid username or password");
-                return response.json();
+                // 1. Read the stream exactly ONCE
+                const rawText = await response.text();
+
+                if (!response.ok) {
+                    let errorMessage = "Invalid username or password";
+                    try {
+                        // 2. Parse the text we ALREADY saved in memory
+                        const errorData = JSON.parse(rawText);
+                        errorMessage = errorData.message || errorData.error || response.statusText;
+                    } catch (e) {
+                        // 3. Fallback to the saved text
+                        errorMessage = rawText || response.statusText;
+                    }
+                    throw new Error(errorMessage);
+                }
+
+                // Parse the successful response
+                return JSON.parse(rawText);
             })
-            .then(id => {
-                setUserId(id);
+            .then(userData => {
+                const finalUserId = userData.id !== undefined ? userData.id : userData;
+                setUserId(finalUserId);
                 navigate('/portfolio');
             })
             .catch(err => setError(err.message));

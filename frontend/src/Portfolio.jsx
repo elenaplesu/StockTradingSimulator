@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from './config';
+import {API_BASE_URL, getCsrfToken} from './config';
 
 export default function Portfolio({userId}) {
     const [data, setData] = useState(null);
@@ -11,7 +11,7 @@ export default function Portfolio({userId}) {
 
     const fetchPortfolio = () => {
         // 1. Fetch Analytics
-        fetch(`${API_BASE_URL}/api/portfolio/${userId}/analytics`)
+        fetch(`${API_BASE_URL}/api/portfolio/${userId}/analytics`, {credentials: 'include'})
             .then(response => {
                 if (!response.ok) throw new Error("Failed to load analytics");
                 return response.json();
@@ -26,7 +26,7 @@ export default function Portfolio({userId}) {
             });
 
         // 2. Fetch Transaction History
-        fetch(`${API_BASE_URL}/api/portfolio/${userId}/transactions`)
+        fetch(`${API_BASE_URL}/api/portfolio/${userId}/transactions`,{credentials: 'include'})
             .then(response => {
                 if (!response.ok) throw new Error("Failed to load transactions");
                 return response.json();
@@ -73,7 +73,10 @@ export default function Portfolio({userId}) {
 
         fetch(`${API_BASE_URL}/api/trade/sell`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()},
             body: JSON.stringify(payload)
         })
             .then(async response => {
@@ -104,7 +107,7 @@ export default function Portfolio({userId}) {
                     <div className="card text-white bg-success h-100 shadow-sm">
                         <div className="card-header border-0 pb-0 fw-bold">Available Cash</div>
                         <div className="card-body d-flex align-items-center">
-                            <h2 className="card-title mb-0">${data.cashBalance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h2>
+                            <h2 className="card-title mb-0">${Number(data.cashBalance).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h2>
                         </div>
                     </div>
                 </div>
@@ -112,16 +115,16 @@ export default function Portfolio({userId}) {
                     <div className="card text-white bg-primary h-100 shadow-sm">
                         <div className="card-header border-0 pb-0 fw-bold">Total Net Worth</div>
                         <div className="card-body d-flex align-items-center">
-                            <h2 className="card-title mb-0">${data.netWorth.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h2>
+                            <h2 className="card-title mb-0">${Number(data.netWorth).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</h2>
                         </div>
                     </div>
                 </div>
                 <div className="col-md-3 mb-3">
-                    <div className={`card text-white h-100 shadow-sm ${data.aggregateROI >= 0 ? 'bg-success' : 'bg-danger'}`}>
+                    <div className={`card text-white h-100 shadow-sm ${Number(data.aggregateROI) >= 0 ? 'bg-success' : 'bg-danger'}`}>
                         <div className="card-header border-0 pb-0 fw-bold">Aggregate ROI</div>
                         <div className="card-body d-flex align-items-center">
                             <h2 className="card-title mb-0">
-                                {data.aggregateROI >= 0 ? '+' : ''}{data.aggregateROI.toFixed(2)}%
+                                {Number(data.aggregateROI) >= 0 ? '+' : ''}{Number(data.aggregateROI).toFixed(2)}%
                             </h2>
                         </div>
                     </div>
@@ -131,9 +134,9 @@ export default function Portfolio({userId}) {
                         <div className="card-header border-0 pb-0 fw-bold">HHI / Variance</div>
                         <div className="card-body d-flex flex-column justify-content-center">
                             <h3 className="card-title mb-0">
-                                {data.hhi.toFixed(0)} <span className="fs-6 text-muted">HHI</span>
+                                {Number(data.hhi).toFixed(0)} <span className="fs-6 text-muted">HHI</span>
                             </h3>
-                            <small className="text-info mt-1">Var: {data.crossSectionalVariance.toFixed(4)}</small>
+                            <small className="text-info mt-1">Var: {Number(data.crossSectionalVariance).toFixed(4)}</small>
                         </div>
                     </div>
                 </div>
@@ -228,32 +231,51 @@ export default function Portfolio({userId}) {
                         </tr>
                     ) : (
                         data.holdings.map((stock) => {
-                            const totalCost = stock.quantity * stock.averageBuyPrice;
-                            const dollarReturn = stock.totalValue - totalCost;
-                            const isPositive = stock.returnOnInvestment >= 0;
-                            const returnColorClass = isPositive ? 'text-success' : 'text-danger';
-                            const returnSign = isPositive ? '+' : '';
+
+                            const totalCost = Number(stock.quantity) * Number(stock.averageBuyPrice);
+                            const rawDollarReturn = Number(stock.totalValue) - totalCost;
+
+                            const cleanDollarReturn = Number(rawDollarReturn.toFixed(2));
+                            const cleanROI = Number(Number(stock.returnOnInvestment).toFixed(2));
+
+                            const isPositive = cleanDollarReturn > 0;
+                            const isNegative = cleanDollarReturn < 0;
+
+                            const returnColorClass = isPositive ? 'text-success' : isNegative ? 'text-danger' : 'text-muted';
+                            const returnSign = isPositive ? '+' : isNegative ? '-' : '';
+
+                            const displayDollar = Math.abs(cleanDollarReturn).toFixed(2);
+                            const displayROI = Math.abs(cleanROI).toFixed(2);
 
                             return (
                                 <tr key={stock.symbol}>
+
                                     <td><strong className="fs-5">{stock.symbol}</strong></td>
+
                                     <td>
                                         <div className="d-flex align-items-center gap-2">
-                                            <span className="fw-bold">{stock.weightPercentage.toFixed(1)}%</span>
+                                            <span className="fw-bold">{Number(stock.weightPercentage).toFixed(1)}%</span>
                                             <div className="progress" style={{width: '50px', height: '6px'}}>
-                                                <div className="progress-bar bg-primary" style={{width: `${stock.weightPercentage}%`}}></div>
+                                                <div className="progress-bar bg-primary" style={{width: `${Number(stock.weightPercentage)}%`}}></div>
                                             </div>
                                         </div>
                                     </td>
+
                                     <td>{stock.quantity}</td>
-                                    <td>${stock.averageBuyPrice.toFixed(2)}</td>
-                                    <td><strong>${stock.currentPrice.toFixed(2)}</strong></td>
+
+                                    <td>${Number(stock.averageBuyPrice).toFixed(2)}</td>
+
+                                    <td><strong>${Number(stock.currentPrice).toFixed(2)}</strong></td>
+
                                     <td>
                                         <div className={`fw-bold ${returnColorClass}`}>
-                                            {returnSign}${dollarReturn.toFixed(2)} <br/>
-                                            <small className="opacity-75">{returnSign}{stock.returnOnInvestment.toFixed(2)}%</small>
+                                            {returnSign}${displayDollar} <br/>
+                                            <small className={returnColorClass === 'text-muted' ? '' : 'opacity-75'}>
+                                                {returnSign}{displayROI}%
+                                            </small>
                                         </div>
                                     </td>
+
                                     <td>
                                         <div className="d-flex gap-2" style={{maxWidth: '180px'}}>
                                             <input
@@ -295,7 +317,13 @@ export default function Portfolio({userId}) {
                     </tr>
                     </thead>
                     <tbody>
-                    {transactions.length === 0 ? (
+                    {!Array.isArray(transactions) ? (
+                        <tr>
+                            <td colSpan="6" className="text-center py-4 text-danger fw-bold">
+                                Failed to load transactions. Check the backend logs.
+                            </td>
+                        </tr>
+                    ) : transactions.length === 0 ? (
                         <tr>
                             <td colSpan="6" className="text-center py-4 text-muted">
                                 No transactions recorded yet.
@@ -303,28 +331,40 @@ export default function Portfolio({userId}) {
                         </tr>
                     ) : (
                         transactions.map((tx) => {
-                            const txType = tx.type || 'UNKNOWN';
+                            const txType = tx?.type || 'UNKNOWN';
                             const isBuy = txType.toUpperCase() === 'BUY';
-                            const execPrice = tx.executionPrice || 0;
+                            const execPrice = Number(tx?.executionPrice || tx?.price || 0);
+                            const qty = Number(tx?.quantity || 0);
+
+                            let formattedDate = "Unknown Date";
+
+                            if (tx && tx.timestamp) {
+                                if (typeof tx.timestamp === 'string') {
+                                    formattedDate = new Date(tx.timestamp.endsWith('Z') ? tx.timestamp : tx.timestamp + 'Z').toLocaleString([], {
+                                        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                    });
+                                }
+                                else if (Array.isArray(tx.timestamp)) {
+                                    const [year, month, day, hour, minute, second] = tx.timestamp;
+                                    formattedDate = new Date(year, month - 1, day, hour || 0, minute || 0, second || 0).toLocaleString([], {
+                                        year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                                    });
+                                }
+                            }
 
                             return (
-                                <tr key={tx.id}>
-                                    <td className="text-muted">
-                                        {new Date(tx.timestamp.endsWith('Z') ? tx.timestamp : tx.timestamp + 'Z').toLocaleString([], {
-                                            year: 'numeric', month: 'short', day: 'numeric',
-                                            hour: '2-digit', minute: '2-digit'
-                                        })}
-                                    </td>
+                                <tr key={tx?.id || Math.random()}>
+                                    <td className="text-muted">{formattedDate}</td>
                                     <td>
                                         <span className={`badge ${isBuy ? 'bg-success' : 'bg-danger'} bg-opacity-75`}>
                                             {txType.toUpperCase()}
                                         </span>
                                     </td>
-                                    <td><strong>{tx.symbol}</strong></td>
-                                    <td>{tx.quantity}</td>
+                                    <td><strong>{tx?.symbol || 'N/A'}</strong></td>
+                                    <td>{qty}</td>
                                     <td>${execPrice.toFixed(2)}</td>
                                     <td className="fw-bold text-muted">
-                                        ${(tx.quantity * execPrice).toFixed(2)}
+                                        ${(qty * execPrice).toFixed(2)}
                                     </td>
                                 </tr>
                             );
@@ -333,7 +373,6 @@ export default function Portfolio({userId}) {
                     </tbody>
                 </table>
             </div>
-
         </div>
     );
 }

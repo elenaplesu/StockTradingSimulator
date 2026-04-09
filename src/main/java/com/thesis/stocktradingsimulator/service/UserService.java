@@ -1,11 +1,17 @@
 package com.thesis.stocktradingsimulator.service;
 
+import com.thesis.stocktradingsimulator.exception.InvalidCredentialsException;
+import com.thesis.stocktradingsimulator.exception.ResourceNotFoundException;
+import com.thesis.stocktradingsimulator.exception.UserAlreadyExistsException;
 import com.thesis.stocktradingsimulator.model.Portfolio;
 import com.thesis.stocktradingsimulator.model.User;
 import com.thesis.stocktradingsimulator.repository.PortfolioRepository;
 import com.thesis.stocktradingsimulator.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.util.Optional;
 
 @Service
 public class UserService {
@@ -17,27 +23,29 @@ public class UserService {
     public UserService(UserRepository userRepository, PortfolioRepository portfolioRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.portfolioRepository = portfolioRepository;
-        this.passwordEncoder=passwordEncoder;
+        this.passwordEncoder = passwordEncoder;
     }
 
-    public String registerNewUser(String username, String password) {
-        // 1. Check if username is already taken
+    public User registerNewUser(String username, String password) {
         if (userRepository.existsByUsername(username)) {
-            return "Error: Username already exists!";
+            throw new UserAlreadyExistsException("Username '" + username + "' is already taken.");
         }
-        // 2. Create the User with a $10,000 starting balance
+
         String hashedPwd = passwordEncoder.encode(password);
-        User newUser = new User(username, hashedPwd, 10000.0);
+
+        BigDecimal startingBalance = new BigDecimal("10000.00");
+
+        User newUser = new User(username, hashedPwd, startingBalance);
         userRepository.save(newUser);
-        // 3. Create an empty Portfolio attached to this user
-        Portfolio newPortfolio = new Portfolio(newUser, 10000.0);
+
+        Portfolio newPortfolio = new Portfolio(newUser);
         portfolioRepository.save(newPortfolio);
 
-        return "Success";
+        return newUser;
     }
 
     public User authenticateUser(String username, String password) {
-        java.util.Optional<User> userOptional = userRepository.findByUsername(username);
+        Optional<User> userOptional = userRepository.findByUsername(username);
 
         if (userOptional.isPresent()) {
             User user = userOptional.get();
@@ -45,14 +53,16 @@ public class UserService {
                 return user;
             }
         }
-        return null; // Failed login
+        throw new InvalidCredentialsException("Invalid username or password.");
     }
+
     public User getUserById(Long id) {
-        return userRepository.findById(id).orElse(null);
+        return userRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + id));
     }
 
     public Portfolio getPortfolioByUserId(Long userId) {
-        return portfolioRepository.findByUserId(userId).orElse(null);
+        return portfolioRepository.findByUserId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Portfolio not found for User ID: " + userId));
     }
-
 }

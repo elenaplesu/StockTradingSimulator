@@ -26,8 +26,8 @@ public class AiQuizService {
 
     private final PortfolioRepository portfolioRepository;
     private final HoldingRepository holdingRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final HttpClient client = HttpClient.newHttpClient();
+    private final ObjectMapper objectMapper;
+    private final HttpClient httpClient;
 
     // 1. THE BACKEND FALLBACK POOL
     private static final List<Map<String, Object>> FALLBACK_POOL = List.of(
@@ -45,9 +45,12 @@ public class AiQuizService {
             Map.of("q", "What does ROI stand for?", "options", List.of("Rate of Inflation", "Return on Investment", "Risk of Insolvency", "Revenue over Income"), "answer", "Return on Investment")
     );
 
-    public AiQuizService(PortfolioRepository portfolioRepository, HoldingRepository holdingRepository) {
+    public AiQuizService(PortfolioRepository portfolioRepository, HoldingRepository holdingRepository,
+                         HttpClient httpClient, ObjectMapper objectMapper) {
         this.portfolioRepository = portfolioRepository;
         this.holdingRepository = holdingRepository;
+        this.httpClient = httpClient;
+        this.objectMapper = objectMapper;
     }
 
     public String generatePersonalizedQuiz(Long userId) {
@@ -99,7 +102,7 @@ public class AiQuizService {
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
                 return getFallbackQuiz();

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { API_BASE_URL } from './config';
+import { API_BASE_URL, getCsrfToken} from './config';
 
 export default function Explore({ userId }) {
     const [symbol, setSymbol] = useState('');
@@ -24,7 +24,7 @@ export default function Explore({ userId }) {
         }, 5000);
     };
 
-    const formatAndPadData = (apiHistory, livePrice, range) => {
+    const formatAndPadData = (apiHistory, livePrice, range, marketIsOpen) => {
         if (!apiHistory || apiHistory.length === 0) return [];
 
         let finalData = [...apiHistory];
@@ -32,7 +32,7 @@ export default function Explore({ userId }) {
         const now = Date.now();
 
         // Add Live Price Dot (only if the market is actively open)
-        if (isMarketCurrentlyOpen) {
+        if (marketIsOpen) {
             finalData.push({
                 timestamp: now,
                 price: livePrice
@@ -40,7 +40,7 @@ export default function Explore({ userId }) {
         }
 
         // PADDING LOGIC (For both 1D and 5D)
-        if (isMarketCurrentlyOpen) {
+        if (marketIsOpen) {
             // Use 5-min steps for 1D, and 15-min steps for 5D
             const stepMs = range === '1D' ? 5 * 60 * 1000 : 15 * 60 * 1000;
             let currentPadTime = now + stepMs;
@@ -68,7 +68,6 @@ export default function Explore({ userId }) {
         finalData.sort((a, b) => a.timestamp - b.timestamp);
         return finalData;
     };
-
     // CORE FETCHER
     const fetchChartData = (targetSymbol, targetRange, isBackgroundUpdate = false) => {
         if (!isBackgroundUpdate) {
@@ -79,10 +78,11 @@ export default function Explore({ userId }) {
             setIsPolling(false);
         }
 
-        fetch(`${API_BASE_URL}/api/stocks/${targetSymbol.toUpperCase()}/history?range=${targetRange}`)
+        fetch(`${API_BASE_URL}/api/stocks/${targetSymbol.toUpperCase()}/history?range=${targetRange}`,
+            {credentials: 'include',})
             .then(res => res.ok ? res.json() : [])
             .then(historyData => {
-                fetch(`${API_BASE_URL}/api/stocks/${targetSymbol.toUpperCase()}`)
+                fetch(`${API_BASE_URL}/api/stocks/${targetSymbol.toUpperCase()}`,{ credentials: 'include' })
                     .then(response => {
                         if (!response.ok) throw new Error("Stock not found");
                         return response.json();
@@ -91,7 +91,15 @@ export default function Explore({ userId }) {
                         setStockData(liveData);
                         const livePrice = liveData.currentPrice || liveData.price;
 
-                        const processedData = formatAndPadData(historyData, livePrice, targetRange);
+                        // Determine if market is open based on the last history point
+                        const lastHistoryPoint = historyData.length > 0
+                            ? historyData[historyData.length - 1]
+                            : null;
+                        const marketIsOpen = lastHistoryPoint
+                            ? lastHistoryPoint.timestamp >= (Date.now() - 30 * 60 * 1000)
+                            : false;
+
+                        const processedData = formatAndPadData(historyData, livePrice, targetRange, marketIsOpen);
                         setChartData(processedData);
 
                         if (!isBackgroundUpdate) {
@@ -112,7 +120,6 @@ export default function Explore({ userId }) {
             }
         });
     };
-
     const handleSearch = (e) => {
         e.preventDefault();
         if (!symbol) return;
@@ -130,7 +137,7 @@ export default function Explore({ userId }) {
         let isMounted = true;
         if (isPolling && symbol) {
             fastInterval = setInterval(() => {
-                fetch(`${API_BASE_URL}/api/stocks/${symbol.toUpperCase()}`)
+                fetch(`${API_BASE_URL}/api/stocks/${symbol.toUpperCase()}`, { credentials: 'include' })
                     .then(res => res.ok ? res.json() : null)
                     .then(liveData => {
                         if (isMounted && liveData) {
@@ -177,13 +184,19 @@ export default function Explore({ userId }) {
         const payload = { userId, symbol: stockData.symbol, quantity: parseInt(quantity) };
         fetch(`${API_BASE_URL}/api/trade/buy`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-XSRF-TOKEN': getCsrfToken()
+            },
             body: JSON.stringify(payload)
         })
             .then(async res => {
-                const text = await res.text();
-                if (!res.ok) throw new Error(text);
-                return text;
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.message || "Purchase failed");
+                }
+                return data.message;
             })
             .then(msg => {
                 addNotification(msg, false);
@@ -340,7 +353,6 @@ export default function Explore({ userId }) {
                                                 axisLine={false}
                                                 tickLine={false}
                                             />
-
                                             <YAxis domain={['auto', 'auto']} orientation="right" tick={{fontSize: 11}} axisLine={false} tickLine={false} />
 
                                             <Tooltip

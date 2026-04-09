@@ -10,10 +10,15 @@ const checkMatch = (option, answer) => {
 
 // Compact Definitions from Wikipedia
 const WIKI_TERMS = [
-    { term: "P/E Ratio", desc: "Measures a company's current share price relative to its per-share earnings." },
-    { term: "ROI", desc: "Return on investment is a ratio between net income and investment to evaluate profitability." },
-    { term: "Diversification", desc: "Allocating capital in a way that reduces exposure to any one particular asset or risk." },
-    { term: "ETF", desc: "An exchange-traded fund is a basket of securities that trades on an exchange like a stock." }
+    { term: "P/E Ratio", desc: "Ratio of a company's share price to the company's earnings per share, used to find out whether the company is overvalued or undervalued." },
+    { term: "ROI", desc: "Return on investment is the ratio between net income or profit to investment. A high ROI means the investment's gains compare favorably to its cost." },
+    { term: "Diversification", desc: "The process of allocating capital in a way that reduces the exposure to any one particular asset or risk. A common path towards diversification is investing in a variety of assets." },
+    { term: "ETF", desc: "An exchange-traded fund is a basket of securities that trades on an exchange like a stock." },
+    { term: "Dividend", desc: "The distribution of profits by a corporation, paid to a class of its shareholders." },
+    { term: "Market Cap", desc: "The total value of a publicly traded company's outstanding common shares owned by stockholders." },
+    { term: "Volatility", desc: "The degree of variation of a trading price series over time, measuring risk." },
+    { term: "Bull Market", desc: "A colloquial term use when asset prices have resen or a expected to rise." },
+    { term: "Bear Market", desc: "A market condition where investors are more risk-averse than risk-seeking, defined when prices have fallen 20% or more." }
 ];
 
 export default function Learn({ userId }) {
@@ -34,7 +39,7 @@ export default function Learn({ userId }) {
             endpoint = `${API_BASE_URL}/api/learn/ai-quiz/${userId}`;
         }
 
-        fetch(endpoint)
+        fetch(endpoint, { credentials: 'include' })
             .then(res => {
                 if (!res.ok) throw new Error("API Failed");
                 return res.json();
@@ -87,11 +92,10 @@ export default function Learn({ userId }) {
         setQuizFinished(false);
     };
 
-
     const Footer = () => (
         <footer className="py-2 text-center border-top mt-auto bg-light" style={{ fontSize: '0.75rem' }}>
             <span className="text-muted">
-                Definitions sourced from <strong>Wikipedia</strong>. Quiz data generated dynamically via <strong>Groq Llama 3.1</strong>.
+                Definitions sourced from <strong>Wikipedia and Investopedia</strong>. Quiz data generated dynamically via <strong>Groq Llama 3.1</strong>.
             </span>
         </footer>
     );
@@ -108,13 +112,16 @@ export default function Learn({ userId }) {
                             : "A fast-paced quiz covering essential stock market and investing concepts."}
                     </p>
 
-                    //Compact Study Guide Grid
-                    <div className="row w-100 justify-content-center mb-4" style={{ maxWidth: '800px' }}>
+                    <div className="row w-100 justify-content-center mb-4" style={{ maxWidth: '1000px' }}>
                         {WIKI_TERMS.map((item, idx) => (
-                            <div key={idx} className="col-md-6 col-12 mb-2">
-                                <div className="card shadow-sm border-0 h-100 p-2 text-start">
-                                    <span className="badge bg-primary text-white w-25 mb-1" style={{ fontSize: '0.7rem' }}>{item.term}</span>
-                                    <span className="text-muted" style={{ fontSize: '0.8rem', lineHeight: '1.2' }}>{item.desc}</span>
+                            <div key={idx} className="col-lg-4 col-md-6 col-12 mb-3">
+                                <div className="card shadow-sm border-0 h-100 p-3 text-start">
+                                    <span className="badge bg-primary text-white mb-2" style={{ fontSize: '0.75rem', width: 'fit-content' }}>
+                                        {item.term}
+                                    </span>
+                                    <span className="text-muted" style={{ fontSize: '0.85rem', lineHeight: '1.4' }}>
+                                        {item.desc}
+                                    </span>
                                 </div>
                             </div>
                         ))}
@@ -144,7 +151,7 @@ export default function Learn({ userId }) {
             <div className="d-flex flex-column vh-100 overflow-hidden bg-light">
                 <div className="flex-grow-1 d-flex align-items-center justify-content-center">
                     <div className="card shadow-sm border-0 p-5 text-center" style={{ width: '400px' }}>
-                        <h3 className="fw-bold mb-2">Quiz Complete! 🎉</h3>
+                        <h3 className="fw-bold mb-2">Quiz Completed!</h3>
                         <p className="text-muted mb-4">You have successfully completed this module.</p>
                         <div className="display-4 fw-bold mb-4" style={{ color: passColor }}>
                             {score} / {questions.length}
