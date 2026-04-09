@@ -23,6 +23,8 @@ public class Holding {
     private String symbol;
 
     private int quantity;
+
+    @Column(name = "average_buy_price", precision = 19, scale = 2)
     private BigDecimal averageBuyPrice;
 
     public Holding() {}
