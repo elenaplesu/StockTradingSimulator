@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://stocktradingsimulatorthesis.onrender.com";
+export const API_BASE_URL = "http://localhost:8080";
 
 export const getCsrfToken = () => {
     const match = document.cookie.match(new RegExp('(^| )XSRF-TOKEN=([^;]+)'));
