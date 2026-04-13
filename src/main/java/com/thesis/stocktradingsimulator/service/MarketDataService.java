@@ -95,7 +95,7 @@ public class MarketDataService {
                         String closePriceStr = closePriceArray.get(i).asText();
                         BigDecimal closePrice = new BigDecimal(closePriceStr);
 
-                        history.add(new ChartPoint(timestampMs, "", closePrice));
+                        history.add(new ChartPoint(timestampMs, closePrice));
                     }
                 }
                 return history;

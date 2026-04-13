@@ -60,6 +60,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/learn/general-quiz").permitAll()
                         .requestMatchers("/api/stocks/**").permitAll()
+                        .requestMatchers("/api/health/**").permitAll()
                         .anyRequest().authenticated()
                 );
 
