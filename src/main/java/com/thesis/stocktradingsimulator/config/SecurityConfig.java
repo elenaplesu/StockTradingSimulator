@@ -50,7 +50,6 @@ public class SecurityConfig {
                         // Use the standard handler so it actively looks for the X-XSRF-TOKEN header
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
                 )
-                .csrf(AbstractHttpConfigurer::disable)
                 .securityContext(context -> context
                         .securityContextRepository(securityContextRepository())
                 )
