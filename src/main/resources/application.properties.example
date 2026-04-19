@@ -1,0 +1,29 @@
+# Application
+spring.application.name=StockTradingSimulator
+
+# Database
+spring.datasource.url=YOUR_DATABASE_URL
+spring.datasource.username=YOUR_DATABASE_USERNAME
+spring.datasource.password=YOUR_DATABASE_PASSWORD
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# JPA / Hibernate
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# Session Configuration
+# Cookie stays alive for 7 days
+server.servlet.session.timeout=7d
+# Browser only sends cookie over HTTPS
+server.servlet.session.cookie.secure=true
+# JavaScript cannot access the session cookie
+server.servlet.session.cookie.http-only=true
+# Required for cross-domain cookie attachment
+server.servlet.session.cookie.same-site=none
+
+# CORS
+app.cors.allowed-origins=http://localhost:5173
+
+# Groq AI
+groq.api.key=YOUR_GROQ_API_KEY
