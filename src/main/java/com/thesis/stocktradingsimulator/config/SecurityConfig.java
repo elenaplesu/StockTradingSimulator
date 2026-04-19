@@ -45,10 +45,9 @@ public class SecurityConfig {
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf
-                        // Keep the token in the session (or cookie) on the server side
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
-                        // Use the standard handler so it actively looks for the X-XSRF-TOKEN header
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
+                        .ignoringRequestMatchers("/api/auth/register", "/api/auth/login")
                 )
                 .securityContext(context -> context
                         .securityContextRepository(securityContextRepository())
