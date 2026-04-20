@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://stocktradingsimulatorthesis.onrender.com";
+export const API_BASE_URL = "/api";
 
 export function getCsrfToken() {
     const match = document.cookie

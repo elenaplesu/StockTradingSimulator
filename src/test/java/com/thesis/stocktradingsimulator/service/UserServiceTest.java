@@ -73,37 +73,6 @@ class UserServiceTest {
         verify(portfolioRepository, never()).save(any());
     }
 
-    @Test
-    void authenticateUser_ShouldReturnUser_WhenCredentialsAreValid() {
-        when(userRepository.findByUsername("testStudent")).thenReturn(Optional.of(mockUser));
-        when(passwordEncoder.matches("correctPassword", "hashedPassword123")).thenReturn(true);
-
-        User result = userService.authenticateUser("testStudent", "correctPassword");
-
-        assertNotNull(result);
-        assertEquals("testStudent", result.getUsername());
-    }
-
-    @Test
-    void authenticateUser_ShouldThrowException_WhenPasswordIsIncorrect() {
-        when(userRepository.findByUsername("testStudent")).thenReturn(Optional.of(mockUser));
-        when(passwordEncoder.matches("wrongPassword", "hashedPassword123")).thenReturn(false);
-
-        assertThrows(InvalidCredentialsException.class, () -> {
-            userService.authenticateUser("testStudent", "wrongPassword");
-        });
-    }
-
-    @Test
-    void authenticateUser_ShouldThrowException_WhenUserDoesNotExist() {
-        when(userRepository.findByUsername("ghostUser")).thenReturn(Optional.empty());
-
-        assertThrows(InvalidCredentialsException.class, () -> {
-            userService.authenticateUser("ghostUser", "anyPassword");
-        });
-
-        verify(passwordEncoder, never()).matches(anyString(), anyString());
-    }
 
     @Test
     void getUserById_ShouldThrowException_WhenNotFound() {

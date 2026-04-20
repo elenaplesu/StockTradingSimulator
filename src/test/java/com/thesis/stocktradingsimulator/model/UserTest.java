@@ -14,13 +14,13 @@ class UserTest {
 
     @BeforeEach
     void setUp() {
-        user = new User("testUser", "password", new BigDecimal("1000.00"));
+        user = new User("testUser", "password", new BigDecimal("10000.00"));
     }
 
     @Test
     void addFunds_ShouldIncreaseBalance_WhenAmountIsPositive() {
-        user.addFunds(new BigDecimal("500.00"));
-        assertEquals(0, new BigDecimal("1500.00").compareTo(user.getCashBalance()));
+        user.addFunds(new BigDecimal("5000.00"));
+        assertEquals(0, new BigDecimal("15000.00").compareTo(user.getCashBalance()));
     }
 
     @Test
@@ -32,15 +32,15 @@ class UserTest {
 
     @Test
     void deductFunds_ShouldDecreaseBalance_WhenFundsAreAvailable() {
-        user.deductFunds(new BigDecimal("400.00"));
-        assertEquals(0, new BigDecimal("600.00").compareTo(user.getCashBalance()));
+        user.deductFunds(new BigDecimal("4000.00"));
+        assertEquals(0, new BigDecimal("6000.00").compareTo(user.getCashBalance()));
     }
 
     @Test
     void deductFunds_ShouldThrowInsufficientFundsException_WhenBalanceIsTooLow() {
 
         assertThrows(InsufficientFundsException.class, () -> {
-            user.deductFunds(new BigDecimal("2000.00"));
+            user.deductFunds(new BigDecimal("200000.00"));
         });
     }
 

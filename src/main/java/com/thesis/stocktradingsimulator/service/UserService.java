@@ -44,17 +44,6 @@ public class UserService {
         return newUser;
     }
 
-    public User authenticateUser(String username, String password) {
-        Optional<User> userOptional = userRepository.findByUsername(username);
-
-        if (userOptional.isPresent()) {
-            User user = userOptional.get();
-            if (passwordEncoder.matches(password, user.getPassword())){
-                return user;
-            }
-        }
-        throw new InvalidCredentialsException("Invalid username or password.");
-    }
 
     public User getUserById(Long id) {
         return userRepository.findById(id)
