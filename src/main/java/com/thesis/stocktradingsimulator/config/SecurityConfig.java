@@ -70,10 +70,20 @@ public class SecurityConfig {
                         .requestMatchers("/api/stocks/**").permitAll()
                         .requestMatchers("/api/health/**").permitAll()
                         .anyRequest().authenticated()
+                )
+                .logout(logout -> logout
+                        .logoutUrl("/api/auth/logout")
+                        .deleteCookies("JSESSIONID", "XSRF-TOKEN")
+                        .invalidateHttpSession(true)
+                        .clearAuthentication(true)
+                        .logoutSuccessHandler((request, response, authentication) -> {
+                            response.setStatus(HttpServletResponse.SC_OK);
+                        })
                 );
 
         return http.build();
     }
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

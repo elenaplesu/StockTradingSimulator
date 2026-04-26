@@ -5,7 +5,7 @@ import Explore from './Explore.jsx';
 import Login from './Login';
 import Register from './Register';
 import Learn from './Learn';
-import { API_BASE_URL } from './config';
+import {API_BASE_URL, getCsrfToken} from './config';
 
 const Home = () => (
     <div className="container mt-5 text-center">
@@ -29,7 +29,10 @@ function App() {
     }, []);
 
     const handleLogout = () => {
-        fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST', credentials: 'include' })
+        fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST', credentials: 'include', headers: {
+                'X-XSRF-TOKEN': getCsrfToken(), // CSRF token is required for POST logout
+                'Content-Type': 'application/json'
+            } })
             .then(() => {
                 setUserId(null);
                 window.location.href = '/login';
