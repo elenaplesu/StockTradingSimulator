@@ -22,12 +22,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class MarketDataService {
+public class YahooFinanceProvider implements MarketDataProvider {
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
 
-    public MarketDataService(HttpClient httpClient, ObjectMapper objectMapper) {
+    public YahooFinanceProvider(HttpClient httpClient, ObjectMapper objectMapper) {
         this.httpClient = httpClient;
         this.objectMapper = objectMapper;
     }

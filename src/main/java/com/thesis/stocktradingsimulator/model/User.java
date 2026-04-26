@@ -12,7 +12,7 @@ public class User {
     private Long id;
 
     @Version
-    private Long version;
+    private Long version=0L;
 
     @Column(unique = true, nullable = false)
     private String username;
@@ -25,10 +25,9 @@ public class User {
 
     public User() {}
 
-    public User(String username, String password, BigDecimal cashBalance) {
+    public User(String username, String password) {
         this.username = username;
         this.password = password;
-        this.cashBalance = cashBalance;
     }
 
     public Long getId() { return id; }

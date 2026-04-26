@@ -49,7 +49,7 @@ class AuthControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockUser = new User("testStudent", "hashedPassword123", new BigDecimal("10000.00"));
+        mockUser = new User("testStudent", "hashedPassword123");
         mockUser.setId(99L);
     }
 

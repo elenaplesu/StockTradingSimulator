@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 @Entity
 @Table(name = "holdings", indexes = {
@@ -18,6 +19,9 @@ public class Holding {
     @JoinColumn(name = "portfolio_id", nullable = false)
     @JsonIgnore
     private Portfolio portfolio;
+
+    @Version
+    private Long version=0L;
 
     @Column(nullable = false)
     private String symbol;
@@ -34,6 +38,25 @@ public class Holding {
         this.symbol = symbol;
         this.quantity = quantity;
         this.averageBuyPrice = averageBuyPrice;
+    }
+    public void addShares(int additionalQuantity, BigDecimal purchasePrice) {
+        if (additionalQuantity <= 0) throw new IllegalArgumentException("Quantity must be positive");
+
+        BigDecimal currentQty = BigDecimal.valueOf(this.quantity);
+        BigDecimal addedQty = BigDecimal.valueOf(additionalQuantity);
+
+        BigDecimal totalSpentPreviously = currentQty.multiply(this.averageBuyPrice);
+        BigDecimal newCost = addedQty.multiply(purchasePrice);
+        BigDecimal newTotalSpent = totalSpentPreviously.add(newCost);
+
+        this.quantity += additionalQuantity;
+        this.averageBuyPrice = newTotalSpent.divide(BigDecimal.valueOf(this.quantity), 2, RoundingMode.HALF_UP);
+    }
+    public void removeShares(int amountToSell) {
+        if (amountToSell <= 0) throw new IllegalArgumentException("Amount to sell must be positive");
+        if (this.quantity < amountToSell) throw new IllegalArgumentException("Cannot sell more shares than owned");
+
+        this.quantity -= amountToSell;
     }
 
     public Long getId() { return id; }

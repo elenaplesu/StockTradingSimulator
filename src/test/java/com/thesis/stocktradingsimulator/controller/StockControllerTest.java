@@ -2,7 +2,7 @@ package com.thesis.stocktradingsimulator.controller;
 
 import com.thesis.stocktradingsimulator.dto.ChartPoint;
 import com.thesis.stocktradingsimulator.model.StockQuote;
-import com.thesis.stocktradingsimulator.service.MarketDataService;
+import com.thesis.stocktradingsimulator.service.MarketDataProvider;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,14 +28,13 @@ class StockControllerTest {
     private MockMvc mockMvc;
 
     @MockitoBean
-    private MarketDataService marketDataService;
-
+    private MarketDataProvider marketDataProvider;
 
     @Test
     void getStockPrice_ShouldReturn200Ok_AndQuote_WhenSymbolIsValid() throws Exception {
 
         StockQuote mockQuote = new StockQuote("AAPL", new BigDecimal("175.50"));
-        when(marketDataService.getLivePrice("AAPL")).thenReturn(mockQuote);
+        when(marketDataProvider.getLivePrice("AAPL")).thenReturn(mockQuote);
 
         mockMvc.perform(get("/api/stocks/AAPL")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -47,7 +46,7 @@ class StockControllerTest {
     @Test
     void getStockPrice_ShouldReturn404NotFound_WhenSymbolIsInvalid() throws Exception {
 
-        when(marketDataService.getLivePrice("FAKE")).thenReturn(null);
+        when(marketDataProvider.getLivePrice("FAKE")).thenReturn(null);
 
         mockMvc.perform(get("/api/stocks/FAKE")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -61,7 +60,7 @@ class StockControllerTest {
 
         long fakeTimestamp = 1700000000000L;
         ChartPoint fakePoint = new ChartPoint(fakeTimestamp, new BigDecimal("150.00"));
-        when(marketDataService.getStockHistory("AAPL", "1W")).thenReturn(List.of(fakePoint));
+        when(marketDataProvider.getStockHistory("AAPL", "1W")).thenReturn(List.of(fakePoint));
 
         mockMvc.perform(get("/api/stocks/AAPL/history?range=1W")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -73,7 +72,7 @@ class StockControllerTest {
     @Test
     void getStockHistory_ShouldUseDefaultRange1D_WhenNoRangeIsProvided() throws Exception {
         ChartPoint fakePoint = new ChartPoint(123456L, new BigDecimal("100.00"));
-        when(marketDataService.getStockHistory("TSLA", "1D")).thenReturn(List.of(fakePoint));
+        when(marketDataProvider.getStockHistory("TSLA", "1D")).thenReturn(List.of(fakePoint));
 
         mockMvc.perform(get("/api/stocks/TSLA/history")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -83,7 +82,7 @@ class StockControllerTest {
     @Test
     void getStockHistory_ShouldReturn400BadRequest_WhenDataIsEmpty() throws Exception {
 
-        when(marketDataService.getStockHistory("AAPL", "1M")).thenReturn(Collections.emptyList());
+        when(marketDataProvider.getStockHistory("AAPL", "1M")).thenReturn(Collections.emptyList());
 
         mockMvc.perform(get("/api/stocks/AAPL/history?range=1M")
                         .contentType(MediaType.APPLICATION_JSON))

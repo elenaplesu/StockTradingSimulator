@@ -21,16 +21,16 @@ public class TransactionManagerService {
     private final PortfolioRepository portfolioRepository;
     private final HoldingRepository holdingRepository;
     private final TransactionRepository transactionRepository;
-    private final MarketDataService marketDataService;
+    private final MarketDataProvider marketDataProvider;
 
     public TransactionManagerService(UserRepository userRepository, PortfolioRepository portfolioRepository,
                                      HoldingRepository holdingRepository, TransactionRepository transactionRepository,
-                                     MarketDataService marketDataService) {
+                                     MarketDataProvider marketDataProvider) {
         this.userRepository = userRepository;
         this.portfolioRepository = portfolioRepository;
         this.holdingRepository = holdingRepository;
         this.transactionRepository = transactionRepository;
-        this.marketDataService = marketDataService;
+        this.marketDataProvider = marketDataProvider;
     }
 
     @Transactional
@@ -49,15 +49,7 @@ public class TransactionManagerService {
         Optional<Holding> holdingOption = holdingRepository.findByPortfolioIdAndSymbol(portfolio.getId(), symbol.toUpperCase());
         if(holdingOption.isPresent()){
             Holding holding = holdingOption.get();
-            BigDecimal prevQty = BigDecimal.valueOf(holding.getQuantity());
-            BigDecimal totalSpentPreviously = prevQty.multiply(holding.getAverageBuyPrice());
-            BigDecimal newTotalSpent = totalSpentPreviously.add(totalCost);
-
-            int newQuantity = holding.getQuantity() + quantity;
-            BigDecimal newAveragePrice = newTotalSpent.divide(BigDecimal.valueOf(newQuantity), 2, RoundingMode.HALF_UP);
-
-            holding.setQuantity(newQuantity);
-            holding.setAverageBuyPrice(newAveragePrice);
+            holding.addShares(quantity, price);
             holdingRepository.saveAndFlush(holding);
         } else {
             Holding newHolding = new Holding(portfolio, symbol.toUpperCase(), quantity, price);
@@ -78,28 +70,23 @@ public class TransactionManagerService {
         Holding holding = holdingRepository.findByPortfolioIdAndSymbol(portfolio.getId(), symbol.toUpperCase())
                 .orElseThrow(() -> new InsufficientSharesException("You do not own any shares of " + symbol.toUpperCase()));
 
-        if (holding.getQuantity() < quantity) {
-            throw new InsufficientSharesException("Insufficient shares. You only have " + holding.getQuantity());
-        }
-
         BigDecimal price = getValidStockPrice(symbol);
         BigDecimal totalRevenue = calculateTotalValue(price, quantity);
 
         user.addFunds(totalRevenue);
         userRepository.saveAndFlush(user);
 
-        int remainingQuantity = holding.getQuantity() - quantity;
-        if (remainingQuantity == 0) {
+        holding.removeShares(quantity);
+
+        if (holding.getQuantity() == 0) {
             holdingRepository.delete(holding);
         } else {
-            holding.setQuantity(remainingQuantity);
             holdingRepository.saveAndFlush(holding);
         }
 
         Transaction transaction = new Transaction(portfolio, TransactionType.SELL, symbol.toUpperCase(), quantity, price);
         return transactionRepository.save(transaction);
     }
-
     public java.util.List<Transaction> getTransactionHistory(Long userId) {
         Portfolio portfolio = portfolioRepository.findByUserId(userId).orElse(null);
         if (portfolio == null) {
@@ -125,7 +112,7 @@ public class TransactionManagerService {
     }
 
     private BigDecimal getValidStockPrice(String symbol) {
-        StockQuote quote = marketDataService.getLivePrice(symbol);
+        StockQuote quote = marketDataProvider.getLivePrice(symbol);
         if (quote == null) {
             throw new ResourceNotFoundException("Invalid stock symbol or API error.");
         }

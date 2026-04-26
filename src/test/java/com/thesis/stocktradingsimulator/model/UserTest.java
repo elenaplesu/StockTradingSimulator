@@ -14,7 +14,7 @@ class UserTest {
 
     @BeforeEach
     void setUp() {
-        user = new User("testUser", "password", new BigDecimal("10000.00"));
+        user = new User("testUser", "password");
     }
 
     @Test

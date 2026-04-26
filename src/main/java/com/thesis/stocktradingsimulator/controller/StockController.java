@@ -1,8 +1,8 @@
 package com.thesis.stocktradingsimulator.controller;
 
-import com.thesis.stocktradingsimulator.model.StockQuote;
 import com.thesis.stocktradingsimulator.dto.ChartPoint;
-import com.thesis.stocktradingsimulator.service.MarketDataService;
+import com.thesis.stocktradingsimulator.model.StockQuote;
+import com.thesis.stocktradingsimulator.service.MarketDataProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -14,15 +14,15 @@ import java.util.Map;
 @RequestMapping("/api/stocks")
 public class StockController {
 
-    private final MarketDataService marketDataService;
+    private final MarketDataProvider marketDataProvider;
 
-    public StockController(MarketDataService marketDataService) {
-        this.marketDataService = marketDataService;
+    public StockController(MarketDataProvider marketDataProvider) {
+        this.marketDataProvider = marketDataProvider;
     }
 
     @GetMapping("/{symbol}")
     public ResponseEntity<?> getStockPrice(@PathVariable String symbol) {
-        StockQuote quote = marketDataService.getLivePrice(symbol);
+        StockQuote quote = marketDataProvider.getLivePrice(symbol);
 
         if (quote != null) {
             return ResponseEntity.ok(quote);
@@ -37,7 +37,7 @@ public class StockController {
             @PathVariable String symbol,
             @RequestParam(required = false, defaultValue = "1D") String range) {
 
-        List<ChartPoint> history = marketDataService.getStockHistory(symbol, range);
+        List<ChartPoint> history = marketDataProvider.getStockHistory(symbol, range);
 
         if (history != null && !history.isEmpty()) {
             return ResponseEntity.ok(history);

@@ -30,7 +30,7 @@ class PortfolioAnalyticsServiceTest {
     private HoldingRepository holdingRepository;
 
     @Mock
-    private MarketDataService marketDataService;
+    private MarketDataProvider marketDataProvider;
 
     @InjectMocks
     private PortfolioAnalyticsService analyticsService;
@@ -53,8 +53,8 @@ class PortfolioAnalyticsServiceTest {
         when(userService.getPortfolioByUserId(1L)).thenReturn(mockPortfolio);
         when(holdingRepository.findByPortfolioId(1L)).thenReturn(List.of(apple, tesla));
 
-        when(marketDataService.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", new BigDecimal("50.00")));
-        when(marketDataService.getLivePrice("TSLA")).thenReturn(new StockQuote("TSLA", new BigDecimal("50.00")));
+        when(marketDataProvider.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", new BigDecimal("50.00")));
+        when(marketDataProvider.getLivePrice("TSLA")).thenReturn(new StockQuote("TSLA", new BigDecimal("50.00")));
 
         PortfolioAnalyticsDTO result = analyticsService.generateAnalytics(1L);
 
@@ -74,7 +74,7 @@ class PortfolioAnalyticsServiceTest {
         when(userService.getPortfolioByUserId(1L)).thenReturn(mockPortfolio);
         when(holdingRepository.findByPortfolioId(1L)).thenReturn(List.of(nvidia));
 
-        when(marketDataService.getLivePrice("NVDA")).thenReturn(new StockQuote("NVDA", new BigDecimal("50.00")));
+        when(marketDataProvider.getLivePrice("NVDA")).thenReturn(new StockQuote("NVDA", new BigDecimal("50.00")));
 
         PortfolioAnalyticsDTO result = analyticsService.generateAnalytics(1L);
 
@@ -89,7 +89,7 @@ class PortfolioAnalyticsServiceTest {
         when(userService.getPortfolioByUserId(1L)).thenReturn(mockPortfolio);
         when(holdingRepository.findByPortfolioId(1L)).thenReturn(List.of(apple));
 
-        when(marketDataService.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", new BigDecimal("50.00")));
+        when(marketDataProvider.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", new BigDecimal("50.00")));
 
         PortfolioAnalyticsDTO result = analyticsService.generateAnalytics(1L);
 

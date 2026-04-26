@@ -1,6 +1,5 @@
 package com.thesis.stocktradingsimulator.service;
 
-import com.thesis.stocktradingsimulator.exception.InvalidCredentialsException;
 import com.thesis.stocktradingsimulator.exception.ResourceNotFoundException;
 import com.thesis.stocktradingsimulator.exception.UserAlreadyExistsException;
 import com.thesis.stocktradingsimulator.model.Portfolio;
@@ -9,9 +8,9 @@ import com.thesis.stocktradingsimulator.repository.PortfolioRepository;
 import com.thesis.stocktradingsimulator.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional; // Import this
 
 import java.math.BigDecimal;
-import java.util.Optional;
 
 @Service
 public class UserService {
@@ -26,24 +25,24 @@ public class UserService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @Transactional
     public User registerNewUser(String username, String password) {
         if (userRepository.existsByUsername(username)) {
             throw new UserAlreadyExistsException("Username '" + username + "' is already taken.");
         }
 
-        String hashedPwd = passwordEncoder.encode(password);
+        User newUser = new User(
+                username,
+                passwordEncoder.encode(password)
+        );
 
-        BigDecimal startingBalance = new BigDecimal("10000.00");
+        User savedUser = userRepository.save(newUser);
 
-        User newUser = new User(username, hashedPwd, startingBalance);
-        userRepository.save(newUser);
-
-        Portfolio newPortfolio = new Portfolio(newUser);
+        Portfolio newPortfolio = new Portfolio(savedUser);
         portfolioRepository.save(newPortfolio);
 
-        return newUser;
+        return savedUser;
     }
-
 
     public User getUserById(Long id) {
         return userRepository.findById(id)

@@ -1,6 +1,5 @@
 package com.thesis.stocktradingsimulator.service;
 
-import com.thesis.stocktradingsimulator.exception.InvalidCredentialsException;
 import com.thesis.stocktradingsimulator.exception.ResourceNotFoundException;
 import com.thesis.stocktradingsimulator.exception.UserAlreadyExistsException;
 import com.thesis.stocktradingsimulator.model.Portfolio;
@@ -16,7 +15,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;

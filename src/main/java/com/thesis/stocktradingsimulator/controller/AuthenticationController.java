@@ -30,17 +30,14 @@ public class AuthenticationController {
     private final SecurityContextRepository securityContextRepository;
     private final UserService userService;
     private final UserRepository userRepository;
-    private final PortfolioRepository portfolioRepository;
 
     public AuthenticationController(AuthenticationManager authenticationManager,
                                     UserService userService,
                                     UserRepository userRepository,
-                                    PortfolioRepository portfolioRepository,
                                     SecurityContextRepository securityContextRepository) {
         this.authenticationManager = authenticationManager;
         this.userService = userService;
         this.userRepository = userRepository;
-        this.portfolioRepository = portfolioRepository;
         this.securityContextRepository = securityContextRepository;
     }
 
@@ -51,6 +48,7 @@ public class AuthenticationController {
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
+
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -60,6 +58,7 @@ public class AuthenticationController {
 
         return ResponseEntity.ok(user.getId());
     }
+
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody LoginRequest request) {
         if (userRepository.findByUsername(request.username).isPresent()) {
@@ -68,9 +67,6 @@ public class AuthenticationController {
 
         User savedUser = userService.registerNewUser(request.username, request.password);
 
-        Portfolio newPortfolio = new Portfolio();
-        newPortfolio.setUser(savedUser);
-        portfolioRepository.save(newPortfolio);
 
         return ResponseEntity.ok(savedUser.getId());
     }

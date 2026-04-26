@@ -21,7 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class MarketDataServiceTest {
+class YahooFinanceProviderTest {
 
     @Mock
     private HttpClient httpClient;
@@ -33,7 +33,7 @@ class MarketDataServiceTest {
     private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
-    private MarketDataService marketDataService;
+    private YahooFinanceProvider yahooFinanceProvider;
 
     @Test
     void getLivePrice_ShouldParseJsonCorrectly_WhenYahooReturnsValidData() throws Exception {
@@ -55,7 +55,7 @@ class MarketDataServiceTest {
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(mockResponse);
 
-        StockQuote quote = marketDataService.getLivePrice("AAPL");
+        StockQuote quote = yahooFinanceProvider.getLivePrice("AAPL");
 
         assertNotNull(quote, "StockQuote should not be null");
         assertEquals("AAPL", quote.getSymbol());
@@ -63,14 +63,25 @@ class MarketDataServiceTest {
     }
 
     @Test
-    void getLivePrice_ShouldReturnNull_WhenApiFailsOrTimesOut() throws Exception {
-
+    void getLivePrice_ShouldThrowException_WhenApiFailsOrTimesOut() throws Exception {
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenThrow(new java.net.http.HttpTimeoutException("Yahoo is down"));
 
-        StockQuote quote = marketDataService.getLivePrice("AAPL");
+        // In a pure unit test without Spring AOP, the exception should bubble up
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            yahooFinanceProvider.getLivePrice("AAPL");
+        });
 
-        assertNull(quote, "Service should gracefully return null on API failure");
+        assertEquals("API call failed", exception.getMessage());
+    }
+
+    @Test
+    void recoverLivePrice_ShouldReturnNull_WhenAllRetriesFail() {
+        // We can test the recovery method directly!
+        RuntimeException fakeException = new RuntimeException("API call failed");
+        StockQuote quote = yahooFinanceProvider.recoverLivePrice(fakeException, "AAPL");
+
+        assertNull(quote, "Recovery method should safely return null");
     }
 
     @Test
@@ -99,7 +110,7 @@ class MarketDataServiceTest {
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(mockResponse);
 
-        List<ChartPoint> history = marketDataService.getStockHistory("AAPL", "1D");
+        List<ChartPoint> history = yahooFinanceProvider.getStockHistory("AAPL", "1D");
 
         assertNotNull(history);
         assertEquals(2, history.size(), "Should have parsed exactly two chart points");
@@ -118,7 +129,7 @@ class MarketDataServiceTest {
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenReturn(mockResponse);
 
-        List<ChartPoint> history = marketDataService.getStockHistory("AAPL", "1D");
+        List<ChartPoint> history = yahooFinanceProvider.getStockHistory("AAPL", "1D");
 
         assertNull(history, "Service should safely return null if the JSON doesn't contain the expected Yahoo structure");
     }

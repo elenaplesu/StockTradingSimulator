@@ -29,7 +29,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TransactionManagerServiceTest {
 
-    @Mock private MarketDataService marketDataService;
+    // 1. Updated to use the Interface!
+    @Mock private MarketDataProvider marketDataProvider;
     @Mock private UserRepository userRepository;
     @Mock private PortfolioRepository portfolioRepository;
     @Mock private HoldingRepository holdingRepository;
@@ -51,7 +52,7 @@ class TransactionManagerServiceTest {
     void executeBuy_ShouldBlockTrade_WhenInsufficientFunds() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(portfolioRepository.findByUserId(1L)).thenReturn(Optional.of(mockPortfolio));
-        when(marketDataService.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", new BigDecimal("50.00")));
+        when(marketDataProvider.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", new BigDecimal("50.00")));
 
         assertThrows(InsufficientFundsException.class, () -> {
             transactionManagerService.executeBuy(1L, "AAPL", 500);
@@ -69,7 +70,7 @@ class TransactionManagerServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(portfolioRepository.findByUserId(1L)).thenReturn(Optional.of(mockPortfolio));
-        when(marketDataService.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", stockPrice));
+        when(marketDataProvider.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", stockPrice));
         when(holdingRepository.findByPortfolioIdAndSymbol(1L, "AAPL")).thenReturn(Optional.empty());
 
         transactionManagerService.executeBuy(1L, "AAPL", quantity);
@@ -88,7 +89,7 @@ class TransactionManagerServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(portfolioRepository.findByUserId(1L)).thenReturn(Optional.of(mockPortfolio));
         when(holdingRepository.findByPortfolioIdAndSymbol(1L, "AAPL")).thenReturn(Optional.of(existingHolding));
-        when(marketDataService.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", new BigDecimal("50.00")));
+        when(marketDataProvider.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", new BigDecimal("50.00")));
 
         transactionManagerService.executeBuy(1L, "AAPL", 10);
 
@@ -123,7 +124,7 @@ class TransactionManagerServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(portfolioRepository.findByUserId(1L)).thenReturn(Optional.of(mockPortfolio));
         when(holdingRepository.findByPortfolioIdAndSymbol(1L, "TSLA")).thenReturn(Optional.of(existingHolding));
-        when(marketDataService.getLivePrice("TSLA")).thenReturn(new StockQuote("TSLA", sellPrice));
+        when(marketDataProvider.getLivePrice("TSLA")).thenReturn(new StockQuote("TSLA", sellPrice));
 
         transactionManagerService.executeSell(1L, "TSLA", quantity);
 
@@ -143,7 +144,7 @@ class TransactionManagerServiceTest {
             transactionManagerService.executeBuy(1L, "AAPL", -5);
         });
 
-        verify(marketDataService, never()).getLivePrice(anyString());
+        verify(marketDataProvider, never()).getLivePrice(anyString());
         verify(userRepository, never()).saveAndFlush(any());
     }
 
@@ -154,8 +155,9 @@ class TransactionManagerServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(portfolioRepository.findByUserId(1L)).thenReturn(Optional.of(mockPortfolio));
         when(holdingRepository.findByPortfolioIdAndSymbol(1L, "TSLA")).thenReturn(Optional.of(existingHolding));
+        when(marketDataProvider.getLivePrice("TSLA")).thenReturn(new StockQuote("TSLA", new BigDecimal("250.00")));
 
-        assertThrows(InsufficientSharesException.class, () -> {
+        assertThrows(IllegalArgumentException.class, () -> {
             transactionManagerService.executeSell(1L, "TSLA", 6);
         });
 
@@ -174,7 +176,7 @@ class TransactionManagerServiceTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(mockUser));
         when(portfolioRepository.findByUserId(1L)).thenReturn(Optional.of(mockPortfolio));
         when(holdingRepository.findByPortfolioIdAndSymbol(1L, "AAPL")).thenReturn(Optional.of(existingHolding));
-        when(marketDataService.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", sellPrice));
+        when(marketDataProvider.getLivePrice("AAPL")).thenReturn(new StockQuote("AAPL", sellPrice));
 
         transactionManagerService.executeSell(1L, "AAPL", sellQuantity);
 
@@ -182,7 +184,6 @@ class TransactionManagerServiceTest {
         assertEquals(0, expectedBalance.compareTo(mockUser.getCashBalance()), "Cash was not added correctly after partial sell");
 
         assertEquals(6, existingHolding.getQuantity(), "Holding quantity should decrease by the sold amount");
-
         assertEquals(0, new BigDecimal("100.00").compareTo(existingHolding.getAverageBuyPrice()), "Average buy price should NOT change on a sell");
 
         verify(holdingRepository, times(1)).saveAndFlush(existingHolding);
