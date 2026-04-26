@@ -60,15 +60,31 @@ public class AuthenticationController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody LoginRequest request) {
+    public ResponseEntity<?> registerUser(@RequestBody LoginRequest request,
+                                          HttpServletRequest httpRequest,
+                                          HttpServletResponse httpResponse) {
         if (userRepository.findByUsername(request.username).isPresent()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Username already exists."));
         }
 
         User savedUser = userService.registerNewUser(request.username, request.password);
 
+        try {
+            Authentication auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.username, request.password)
+            );
 
-        return ResponseEntity.ok(savedUser.getId());
+            SecurityContext context = SecurityContextHolder.createEmptyContext();
+            context.setAuthentication(auth);
+
+            SecurityContextHolder.setContext(context);
+            securityContextRepository.saveContext(context, httpRequest, httpResponse);
+
+            return ResponseEntity.ok(savedUser.getId());
+        } catch (AuthenticationException e) {
+            return ResponseEntity.status(HttpStatus.PARTIAL_CONTENT)
+                    .body(Map.of("message", "User created but login failed."));
+        }
     }
 
     @PostMapping("/login")

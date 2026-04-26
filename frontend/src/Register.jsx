@@ -52,7 +52,7 @@ export default function Register({ setUserId }) {
                 return JSON.parse(rawText);
             })
             .then(userData => {
-                setUserId(userData.id);
+                setUserId(userData);
                 navigate('/portfolio');
             })
             .catch(err => setError(err.message));
