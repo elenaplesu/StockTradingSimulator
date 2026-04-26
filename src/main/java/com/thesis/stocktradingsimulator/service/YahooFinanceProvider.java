@@ -6,6 +6,9 @@ import com.thesis.stocktradingsimulator.dto.ChartPoint;
 import com.thesis.stocktradingsimulator.model.StockQuote;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Recover;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +42,11 @@ public class MarketDataService {
     }
 
     @Cacheable("livePrices")
+    @Retryable(
+            value = { Exception.class },
+            maxAttempts = 3,
+            backoff = @Backoff(delay = 1000, multiplier = 2) // Wait 1s, then 2s, then fail
+    )
     public StockQuote getLivePrice(String symbol) {
         String url = "https://query2.finance.yahoo.com/v8/finance/chart/" + symbol.toUpperCase() + "?interval=1m&range=1d";
 
@@ -56,7 +64,15 @@ public class MarketDataService {
             }
         } catch (Exception e) {
             System.err.println("Error fetching live price for " + symbol + " from Yahoo: " + e.getMessage());
+            throw new RuntimeException("API call failed"); // Throwing triggers the retry!
         }
+        throw new RuntimeException("Missing data from Yahoo");
+    }
+
+    // If all 3 retries fail, this method runs automatically
+    @Recover
+    public StockQuote recoverLivePrice(RuntimeException e, String symbol) {
+        System.err.println("All retries failed for " + symbol + ". Returning null.");
         return null;
     }
 

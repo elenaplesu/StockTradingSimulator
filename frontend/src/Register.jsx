@@ -9,7 +9,6 @@ export default function Register({ setUserId }) {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    // Auto-dismiss the error after 5 seconds
     useEffect(() => {
         if (error) {
             const timer = setTimeout(() => setError(null), 5000);

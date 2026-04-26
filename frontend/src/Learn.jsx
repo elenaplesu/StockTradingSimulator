@@ -8,7 +8,6 @@ const checkMatch = (option, answer) => {
     return optClean === ansClean || ansClean.includes(optClean);
 };
 
-// Compact Definitions from Wikipedia
 const WIKI_TERMS = [
     { term: "P/E Ratio", desc: "Ratio of a company's share price to the company's earnings per share, used to find out whether the company is overvalued or undervalued." },
     { term: "ROI", desc: "Return on investment is the ratio between net income or profit to investment. A high ROI means the investment's gains compare favorably to its cost." },
@@ -45,7 +44,6 @@ export default function Learn({ userId }) {
                 return res.json();
             })
             .then(quizData => {
-                // Shuffle options
                 const dataArray = Array.isArray(quizData) ? quizData : quizData.questions || [];
                 const finalQuiz = dataArray.map(q => ({
                     ...q,
@@ -100,7 +98,6 @@ export default function Learn({ userId }) {
         </footer>
     );
 
-    // VIEW 1: START SCREEN (Definitions + Start Button)
     if (!quizStarted) {
         return (
             <div className="d-flex flex-column vh-100 overflow-hidden bg-light">
@@ -144,7 +141,6 @@ export default function Learn({ userId }) {
         );
     }
 
-    //  VIEW 2: QUIZ FINISHED
     if (quizFinished) {
         const passColor = score >= questions.length / 2 ? '#198754' : '#dc3545';
         return (
@@ -166,7 +162,6 @@ export default function Learn({ userId }) {
         );
     }
 
-    //  VIEW 3: ACTIVE QUIZ
     const currentQ = questions[currentIdx];
 
     return (

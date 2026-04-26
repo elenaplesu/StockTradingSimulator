@@ -8,7 +8,6 @@ export default function Login({ setUserId }) {
     const [error, setError] = useState(null);
     const navigate = useNavigate();
 
-    // Auto-dismiss the error after 5 seconds
     useEffect(() => {
         if (error) {
             const timer = setTimeout(() => setError(null), 5000);
@@ -30,23 +29,19 @@ export default function Login({ setUserId }) {
             body: JSON.stringify({ username, password })
         })
             .then(async response => {
-                // 1. Read the stream exactly ONCE
                 const rawText = await response.text();
 
                 if (!response.ok) {
                     let errorMessage = "Invalid username or password";
                     try {
-                        // 2. Parse the text we ALREADY saved in memory
                         const errorData = JSON.parse(rawText);
                         errorMessage = errorData.message || errorData.error || response.statusText;
                     } catch (e) {
-                        // 3. Fallback to the saved text
                         errorMessage = rawText || response.statusText;
                     }
                     throw new Error(errorMessage);
                 }
 
-                // Parse the successful response
                 return JSON.parse(rawText);
             })
             .then(userData => {
@@ -59,7 +54,6 @@ export default function Login({ setUserId }) {
 
     return (
         <div className="container mt-5">
-
             {error && (
                 <div
                     className="alert alert-danger shadow-lg m-0"
@@ -84,7 +78,6 @@ export default function Login({ setUserId }) {
                     <div className="card shadow-sm border-0">
                         <div className="card-body bg-light rounded p-4">
                             <h3 className="card-title text-center mb-4 fw-bold">Login</h3>
-
                             <form onSubmit={handleLogin}>
                                 <div className="mb-3">
                                     <label className="form-label text-muted fw-bold">Username</label>
@@ -109,7 +102,6 @@ export default function Login({ setUserId }) {
                                 <button type="submit" className="btn btn-primary w-100 fw-bold mb-3">
                                     Sign In
                                 </button>
-
                                 <div className="text-center">
                                     <span className="text-muted">Don't have an account? </span>
                                     <Link to="/register" className="text-decoration-none fw-bold">Sign up</Link>

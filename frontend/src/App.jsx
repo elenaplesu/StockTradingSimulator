@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, NavLink, Navigate } from 'react-router-dom';
 import Portfolio from './Portfolio';
-import Explore from './Explorev2';
+import Explore from './Explore.jsx';
 import Login from './Login';
 import Register from './Register';
 import Learn from './Learn';
@@ -53,7 +53,7 @@ function App() {
         <Router>
             <nav className="navbar navbar-expand navbar-dark bg-dark">
                 <div className="container">
-                    <Link className="navbar-brand fw-bold" to="/">StockSimulator</Link>
+                    <Link className="navbar-brand fw-bold" to="/">StockTradingSimulator</Link>
                     <div className="navbar-nav flex-row gap-3 me-auto ms-4">
                         <NavLink className={navLinkClass} to="/" end>Home</NavLink>
                         <NavLink className={navLinkClass} to="/explore">Explore</NavLink>
