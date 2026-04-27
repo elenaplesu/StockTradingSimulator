@@ -5,7 +5,7 @@ const checkMatch = (option, answer) => {
     if (!option || !answer) return false;
     const optClean = String(option).trim().toLowerCase();
     const ansClean = String(answer).trim().toLowerCase();
-    return optClean === ansClean || ansClean.includes(optClean);
+    return optClean === ansClean;
 };
 
 const WIKI_TERMS = [
@@ -16,7 +16,7 @@ const WIKI_TERMS = [
     { term: "Dividend", desc: "The distribution of profits by a corporation, paid to a class of its shareholders." },
     { term: "Market Cap", desc: "The total value of a publicly traded company's outstanding common shares owned by stockholders." },
     { term: "Volatility", desc: "The degree of variation of a trading price series over time, measuring risk." },
-    { term: "Bull Market", desc: "A colloquial term use when asset prices have resen or a expected to rise." },
+    { term: "Bull Market", desc: "A colloquial term use when asset prices have risen or a expected to rise." },
     { term: "Bear Market", desc: "A market condition where investors are more risk-averse than risk-seeking, defined when prices have fallen 20% or more." }
 ];
 
@@ -60,7 +60,6 @@ export default function Learn({ userId }) {
                 setIsGenerating(false);
             })
             .catch(err => {
-                console.error("Quiz Fetch Error:", err);
                 setIsGenerating(false);
             });
     };

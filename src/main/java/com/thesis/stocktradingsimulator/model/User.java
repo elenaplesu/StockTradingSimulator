@@ -1,7 +1,9 @@
 package com.thesis.stocktradingsimulator.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.thesis.stocktradingsimulator.exception.InsufficientFundsException;
 import jakarta.persistence.*;
+
 import java.math.BigDecimal;
 
 @Entity
@@ -11,17 +13,19 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JsonIgnore
     @Version
     private Long version=0L;
 
     @Column(unique = true, nullable = false)
     private String username;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String password;
 
     @Column(precision = 19, scale = 4)
-    private BigDecimal cashBalance=new BigDecimal("10000.0000");;
+    private BigDecimal cashBalance = new BigDecimal("10000.0000");
 
     public User() {}
 
@@ -32,8 +36,6 @@ public class User {
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-
-    public Long getVersion() { return version; }
 
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }

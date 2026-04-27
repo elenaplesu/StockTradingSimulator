@@ -13,6 +13,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -43,6 +44,7 @@ class AiQuizServiceTest {
     void setUp() {
         mockUser = TestDataFactory.createStandardMockUser();
         mockPortfolio = TestDataFactory.createStandardMockPortfolio(mockUser);
+        ReflectionTestUtils.setField(aiQuizService, "apiKey", "test-api-key");
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.thesis.stocktradingsimulator.model;
 
+import com.thesis.stocktradingsimulator.exception.InsufficientSharesException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -50,7 +51,7 @@ class HoldingTest {
 
     @Test
     void removeShares_ShouldThrowException_WhenSellingMoreThanOwned() {
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(InsufficientSharesException.class, () -> {
             holding.removeShares(11); // Trying to sell 11 when we only own 10
         }, "Should not allow selling more shares than currently owned");
     }

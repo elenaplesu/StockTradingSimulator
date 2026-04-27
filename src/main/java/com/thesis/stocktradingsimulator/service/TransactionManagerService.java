@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.Collections;
 import java.util.Optional;
 
 @Service
@@ -44,16 +45,16 @@ public class TransactionManagerService {
         BigDecimal totalCost = calculateTotalValue(price, quantity);
 
         user.deductFunds(totalCost);
-        userRepository.saveAndFlush(user);
+        userRepository.save(user);
 
         Optional<Holding> holdingOption = holdingRepository.findByPortfolioIdAndSymbol(portfolio.getId(), symbol.toUpperCase());
         if(holdingOption.isPresent()){
             Holding holding = holdingOption.get();
             holding.addShares(quantity, price);
-            holdingRepository.saveAndFlush(holding);
+            holdingRepository.save(holding);
         } else {
             Holding newHolding = new Holding(portfolio, symbol.toUpperCase(), quantity, price);
-            holdingRepository.saveAndFlush(newHolding);
+            holdingRepository.save(newHolding);
         }
 
         Transaction transaction = new Transaction(portfolio, TransactionType.BUY, symbol.toUpperCase(), quantity, price);
@@ -74,14 +75,14 @@ public class TransactionManagerService {
         BigDecimal totalRevenue = calculateTotalValue(price, quantity);
 
         user.addFunds(totalRevenue);
-        userRepository.saveAndFlush(user);
+        userRepository.save(user);
 
         holding.removeShares(quantity);
 
         if (holding.getQuantity() == 0) {
             holdingRepository.delete(holding);
         } else {
-            holdingRepository.saveAndFlush(holding);
+            holdingRepository.save(holding);
         }
 
         Transaction transaction = new Transaction(portfolio, TransactionType.SELL, symbol.toUpperCase(), quantity, price);
@@ -90,7 +91,7 @@ public class TransactionManagerService {
     public java.util.List<Transaction> getTransactionHistory(Long userId) {
         Portfolio portfolio = portfolioRepository.findByUserId(userId).orElse(null);
         if (portfolio == null) {
-            return java.util.Collections.emptyList();
+            return Collections.emptyList();
         }
         return transactionRepository.findByPortfolioIdOrderByTimestampDesc(portfolio.getId());
     }

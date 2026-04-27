@@ -2,7 +2,6 @@ package com.thesis.stocktradingsimulator.controller;
 
 import com.thesis.stocktradingsimulator.dto.HoldingDTO;
 import com.thesis.stocktradingsimulator.dto.PortfolioAnalyticsDTO;
-import com.thesis.stocktradingsimulator.exception.ResourceNotFoundException;
 import com.thesis.stocktradingsimulator.model.Portfolio;
 import com.thesis.stocktradingsimulator.model.User;
 import com.thesis.stocktradingsimulator.repository.HoldingRepository;
@@ -10,6 +9,7 @@ import com.thesis.stocktradingsimulator.repository.UserRepository;
 import com.thesis.stocktradingsimulator.service.PortfolioAnalyticsService;
 import com.thesis.stocktradingsimulator.service.TransactionManagerService;
 import com.thesis.stocktradingsimulator.service.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -46,6 +46,9 @@ public class PortfolioController {
 
     @GetMapping("/{userId}")
     public ResponseEntity<Map<String, Object>> getPortfolioData(@PathVariable Long userId, Authentication authentication) {
+        if (isUnauthorized(userId, authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         User user = userService.getUserById(userId);
         Portfolio portfolio = userService.getPortfolioByUserId(userId);
 
@@ -66,18 +69,23 @@ public class PortfolioController {
     }
     @GetMapping("/{userId}/analytics")
     public ResponseEntity<PortfolioAnalyticsDTO> getPortfolioAnalytics(@PathVariable Long userId, Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401).build();
+        if (isUnauthorized(userId, authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        PortfolioAnalyticsDTO analytics = analyticsService.generateAnalytics(userId);
-        return ResponseEntity.ok(analytics);
+        return ResponseEntity.ok(analyticsService.generateAnalytics(userId));
     }
 
     @GetMapping("/{userId}/transactions")
     public ResponseEntity<?> getTransactionHistory(@PathVariable Long userId, Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(401).build();
+        if (isUnauthorized(userId, authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(transactionManagerService.getTransactionHistory(userId));
+    }
+
+    private boolean isUnauthorized(Long userId, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) return true;
+        User caller = userRepository.findByUsername(authentication.getName()).orElse(null);
+        return caller == null || !caller.getId().equals(userId);
     }
 }

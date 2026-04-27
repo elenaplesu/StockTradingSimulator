@@ -45,8 +45,7 @@ export default function Login({ setUserId }) {
                 return JSON.parse(rawText);
             })
             .then(userData => {
-                const finalUserId = userData.id !== undefined ? userData.id : userData;
-                setUserId(finalUserId);
+                setUserId(userData);
                 navigate('/portfolio');
             })
             .catch(err => setError(err.message));

@@ -6,20 +6,6 @@ import {useNotifications} from './useNotifications';
 import NotificationContainer from './NotificationContainer';
 import Holidays from 'date-holidays';
 
-const isMarketHoliday = (date) => {
-    const hd = new Holidays('US', 'ny');
-    const holidays = hd.getHolidays(date.getFullYear());
-
-    const holidayCheck = hd.isHoliday(date);
-
-    const isGoodFriday = holidays.find(h =>
-        h.name === 'Good Friday' &&
-        new Date(h.date).toDateString() === date.toDateString()
-    );
-
-    return (holidayCheck && holidayCheck.type === 'public') || !!isGoodFriday;
-};
-
 const checkNYMarketOpen = () => {
     const nyString = new Date().toLocaleString("en-US", {
         timeZone: "America/New_York",
@@ -69,16 +55,37 @@ export default function Explore({ userId }) {
         const now = Date.now();
 
         if (isOpen) {
-            finalData.push({ timestamp: now, price: livePrice });
-
             const stepMs = range === '1D' ? 5 * 60 * 1000 : 15 * 60 * 1000;
-            let currentPadTime = lastHistoryPoint.timestamp + stepMs;
+            const intervalMinutes = range === '1D' ? 5 : 15;
 
-            const lastDate = new Date(lastHistoryPoint.timestamp);
-            const midnightUTC = Date.UTC(lastDate.getUTCFullYear(), lastDate.getUTCMonth(), lastDate.getUTCDate());
+            const midnightUTC = Date.UTC(
+                new Date(now).getUTCFullYear(),
+                new Date(now).getUTCMonth(),
+                new Date(now).getUTCDate()
+            );
             const marketCloseUTC = midnightUTC + (20 * 60 * 60 * 1000);
 
+            const nowDate = new Date(now);
+            const minutesSinceMidnight = nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes();
+            const secondsSinceMidnight = minutesSinceMidnight * 60 + nowDate.getUTCSeconds();
+
+            const intervalSeconds = intervalMinutes * 60;
+            const lastSlotSeconds = Math.floor(secondsSinceMidnight / intervalSeconds) * intervalSeconds;
+            const lastSlotTime = midnightUTC + (lastSlotSeconds * 1000);
+
+            if (lastSlotTime >= finalData[0]?.timestamp) {
+                const existingIdx = finalData.findIndex(p => p.timestamp === lastSlotTime);
+                if (existingIdx >= 0) {
+                    finalData[existingIdx] = { timestamp: lastSlotTime, price: livePrice };
+                } else {
+                    finalData.push({ timestamp: lastSlotTime, price: livePrice });
+                }
+            }
+
             if (now <= marketCloseUTC) {
+                const nextSlotSeconds = lastSlotSeconds + intervalSeconds;
+                let currentPadTime = midnightUTC + (nextSlotSeconds * 1000);
+
                 while (currentPadTime <= marketCloseUTC) {
                     if (currentPadTime > now) {
                         finalData.push({ timestamp: currentPadTime, price: null });
@@ -167,9 +174,8 @@ export default function Explore({ userId }) {
 
                         const nextIdx = lastValidIdx + 1;
                         if (nextIdx < newData.length && now >= newData[nextIdx].timestamp) {
-                            newData[nextIdx] = { ...newData[nextIdx], price: realPrice };
+                            newData[nextIdx] = { timestamp: now, price: realPrice };
                         }
-
                         if (!newData.some(p => p.price === null)) setIsPolling(false);
 
                         return newData;
@@ -182,7 +188,7 @@ export default function Explore({ userId }) {
             isMounted = false;
             clearInterval(interval);
         };
-    }, [isPolling, symbol, timeRange]);
+    }, [isPolling, symbol]);
 
     const validPoints = chartData.filter(p => p.price !== null);
     const firstPrice = validPoints.length > 0 ? validPoints[0].price : 0;
@@ -269,8 +275,8 @@ export default function Explore({ userId }) {
                                             onClick={() => handleRangeChange('1D')}
                                         >1D</button>
                                         <button
-                                            className={`btn ${timeRange === '1W' ? 'btn-primary' : 'btn-outline-primary'}`}
-                                            onClick={() => handleRangeChange('1W')}
+                                            className={`btn ${timeRange === '5D' ? 'btn-primary' : 'btn-outline-primary'}`}
+                                            onClick={() => handleRangeChange('5D')}
                                         >5D</button>
                                     </div>
                                 </div>
@@ -317,7 +323,17 @@ export default function Explore({ userId }) {
                                 </div>
                             </div>
                             <div className="col-md-5 d-flex flex-column justify-content-center border-start px-4">
-                                <h3 className="fw-bold mb-1">{stockData.symbol}</h3>
+                                <h3 className="fw-bold mb-1" style={{
+                                    fontSize: (stockData.companyName || stockData.symbol).length > 30 ? '1rem' :
+                                        (stockData.companyName || stockData.symbol).length > 20 ? '1.25rem' :
+                                            '1.75rem',
+                                    wordBreak: 'break-word'
+                                }}>
+                                    {stockData.companyName || stockData.symbol}
+                                </h3>
+                                {stockData.companyName && stockData.companyName !== stockData.symbol && (
+                                    <small className="text-muted d-block mb-1">{stockData.symbol}</small>
+                                )}
                                 <div className="d-flex align-items-center justify-content-center gap-2">
                                     <h1 className="fw-bold mb-0" style={{ color: chartColor }}>
                                         ${(stockData.currentPrice || stockData.price)?.toFixed(2)}
@@ -341,12 +357,6 @@ export default function Explore({ userId }) {
                     </div>
                 </div>
             )}
-            <style>{`
-                @keyframes slideIn {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-            `}</style>
         </div>
     );
 }

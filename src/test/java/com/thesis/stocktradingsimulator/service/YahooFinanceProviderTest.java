@@ -131,6 +131,7 @@ class YahooFinanceProviderTest {
 
         List<ChartPoint> history = yahooFinanceProvider.getStockHistory("AAPL", "1D");
 
-        assertNull(history, "Service should safely return null if the JSON doesn't contain the expected Yahoo structure");
+        assertNotNull(history);
+        assertTrue(history.isEmpty(), "Should return empty list if JSON doesn't contain expected structure");
     }
 }

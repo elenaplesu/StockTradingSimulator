@@ -17,6 +17,7 @@ public class PortfolioMathUtils {
     }
 
     public static BigDecimal calculateNormalizedHHI(List<BigDecimal> weights) {
+        if (weights == null || weights.isEmpty()) return BigDecimal.ZERO;
         BigDecimal hhi = BigDecimal.ZERO;
         for (BigDecimal weight : weights) {
             hhi = hhi.add(weight.pow(2));

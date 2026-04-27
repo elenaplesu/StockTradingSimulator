@@ -19,6 +19,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -41,7 +42,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
                 .build();
     }
 
-    @Cacheable("livePrices")
+    @Cacheable(value = "livePrices", key = "#symbol.toUpperCase()")
     @Retryable(
             value = { Exception.class },
             maxAttempts = 3,
@@ -63,8 +64,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
                 return new StockQuote(symbol.toUpperCase(), currentPrice);
             }
         } catch (Exception e) {
-            System.err.println("Error fetching live price for " + symbol + " from Yahoo: " + e.getMessage());
-            throw new RuntimeException("API call failed"); // Throwing triggers the retry!
+            throw new RuntimeException("API call failed");
         }
         throw new RuntimeException("Missing data from Yahoo");
     }
@@ -72,7 +72,6 @@ public class YahooFinanceProvider implements MarketDataProvider {
     // If all 3 retries fail, this method runs automatically
     @Recover
     public StockQuote recoverLivePrice(RuntimeException e, String symbol) {
-        System.err.println("All retries failed for " + symbol + ". Returning null.");
         return null;
     }
 
@@ -80,7 +79,8 @@ public class YahooFinanceProvider implements MarketDataProvider {
         String yfRange = "1d";
         String yfInterval = "5m";
 
-        if ("1W".equalsIgnoreCase(range)) {
+        if (("5D" +
+                "").equalsIgnoreCase(range)) {
             yfRange = "5d";
             yfInterval = "15m";
         } else if ("1M".equalsIgnoreCase(range)) {
@@ -117,15 +117,38 @@ public class YahooFinanceProvider implements MarketDataProvider {
                 return history;
             }
         } catch (Exception e) {
-            System.err.println("Error fetching historical data for " + symbol + " from Yahoo: " + e.getMessage());
+            Collections.emptyList();
         }
 
-        return null;
+        return Collections.emptyList();
     }
 
     @CacheEvict(value = "livePrices", allEntries = true)
     @Scheduled(fixedRate = 5000)
     public void clearPriceCache() {
         System.out.println("Clearing the live price cache to fetch fresh Yahoo data...");
+    }
+
+    public String getCompanyName(String symbol) {
+        String url = "https://query2.finance.yahoo.com/v1/finance/search?q=" + symbol.toUpperCase();
+
+        try {
+            HttpRequest request = buildYahooRequest(url);
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            JsonNode rootNode = objectMapper.readTree(response.body());
+            JsonNode quotes = rootNode.path("quotes");
+
+            if (quotes.isArray() && quotes.size() > 0) {
+                String shortname = quotes.get(0).path("shortname").asText();
+                if (shortname != null && !shortname.isEmpty() && !shortname.equals(symbol.toUpperCase())) {
+                    return shortname;
+                }
+            }
+        } catch (Exception e) {
+            return symbol.toUpperCase();
+        }
+        return symbol.toUpperCase();
+
     }
 }

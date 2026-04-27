@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react';
+import {useState, useCallback, useRef} from 'react';
 
 export function useNotifications() {
     const [notifications, setNotifications] = useState([]);
-
+    const idCounter = useRef(0);
     const addNotification = useCallback((message, isError) => {
-        const id = Date.now();
+        const id = ++idCounter.current;
         setNotifications(prev => [...prev, { id, message, isError }]);
 
         setTimeout(() => {

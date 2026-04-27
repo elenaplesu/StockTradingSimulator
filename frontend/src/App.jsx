@@ -15,17 +15,27 @@ const Home = () => (
 );
 
 function App() {
-    const [userId, setUserId] = useState(null);
+    const [userId, setUserId] = useState(() => {
+        const stored = sessionStorage.getItem('userId');
+        return stored ? parseInt(stored) : null;
+    });
     const [appReady, setAppReady] = useState(false);
-
     useEffect(() => {
         fetch(`${API_BASE_URL}/api/auth/me`, { credentials: 'include' })
             .then(res => res.ok ? res.json() : null)
             .then(id => {
-                if (id) setUserId(id);
+                if (id) {
+                    setUserId(id);
+                    sessionStorage.setItem('userId', id);
+                } else {
+                    sessionStorage.removeItem('userId');  // ← add this
+                }
                 setAppReady(true);
             })
-            .catch(() => setAppReady(true));
+            .catch(() => {
+                sessionStorage.removeItem('userId');  // ← add this too
+                setAppReady(true);
+            });;
     }, []);
 
     const handleLogout = () => {
@@ -33,7 +43,12 @@ function App() {
                 'X-XSRF-TOKEN': getCsrfToken(), // CSRF token is required for POST logout
                 'Content-Type': 'application/json'
             } })
-            .then(() => {
+            .then(res => {
+                if (!res.ok) throw new Error("Logout failed");
+                setUserId(null);
+                window.location.href = '/login';
+            })
+            .catch(() => {
                 setUserId(null);
                 window.location.href = '/login';
             });

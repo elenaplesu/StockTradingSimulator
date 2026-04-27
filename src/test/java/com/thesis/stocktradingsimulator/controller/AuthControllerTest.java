@@ -1,6 +1,7 @@
 package com.thesis.stocktradingsimulator.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.thesis.stocktradingsimulator.exception.UserAlreadyExistsException;
 import com.thesis.stocktradingsimulator.model.User;
 import com.thesis.stocktradingsimulator.repository.PortfolioRepository;
 import com.thesis.stocktradingsimulator.repository.UserRepository;
@@ -56,7 +57,7 @@ class AuthControllerTest {
     @Test
     void registerUser_ShouldReturn200Ok_WithUserId_WhenRegistrationIsSuccessful() throws Exception {
 
-        when(userRepository.findByUsername("testStudent")).thenReturn(Optional.empty());
+        when(userRepository.findByUsername("testStudent")).thenReturn(Optional.of(mockUser));
         when(userService.registerNewUser("testStudent", "password123")).thenReturn(mockUser);
 
         String requestJson = """
@@ -74,22 +75,22 @@ class AuthControllerTest {
     }
 
     @Test
-    void registerUser_ShouldReturn400BadRequest_WhenUsernameIsTaken() throws Exception {
-
-        when(userRepository.findByUsername("takenUser")).thenReturn(Optional.of(mockUser));
+    void registerUser_ShouldReturn409Conflict_WhenUsernameIsTaken() throws Exception {
+        when(userService.registerNewUser("takenUser", "password123"))
+                .thenThrow(new UserAlreadyExistsException("Username 'takenUser' is already taken."));
 
         String requestJson = """
-                {
-                    "username": "takenUser",
-                    "password": "password123"
-                }
-                """;
+            {
+                "username": "takenUser",
+                "password": "password123"
+            }
+            """;
 
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Username already exists."));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("Username 'takenUser' is already taken."));
     }
 
     @Test
@@ -98,7 +99,6 @@ class AuthControllerTest {
         Authentication mockAuth = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(mockAuth);
-
         when(userRepository.findByUsername("testStudent")).thenReturn(Optional.of(mockUser));
 
         String requestJson = """
@@ -136,12 +136,4 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value("Invalid username or password"));
     }
 
-
-    @Test
-    void logout_ShouldInvalidateSession_AndReturn200Ok() throws Exception {
-
-        mockMvc.perform(post("/api/auth/logout"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Logged out successfully"));
-    }
 }

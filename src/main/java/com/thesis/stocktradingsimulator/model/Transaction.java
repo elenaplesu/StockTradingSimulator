@@ -45,6 +45,9 @@ public class Transaction {
         this.symbol = symbol;
         this.quantity = quantity;
         this.executionPrice = executionPrice;
+    }
+    @PrePersist
+    private void onCreate() {
         this.timestamp = LocalDateTime.now(ZoneOffset.UTC);
     }
 
@@ -67,5 +70,4 @@ public class Transaction {
     public void setExecutionPrice(BigDecimal executionPrice) { this.executionPrice = executionPrice; }
 
     public LocalDateTime getTimestamp() { return timestamp; }
-    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
 }

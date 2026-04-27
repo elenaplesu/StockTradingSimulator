@@ -22,7 +22,7 @@ class TransactionRepositoryTest extends BaseIntegrationTest {
         Transaction firstTx = new Transaction(defaultPortfolio, TransactionType.BUY, "AAPL", 10, new BigDecimal("150.00"));
         transactionRepository.save(firstTx);
 
-        Thread.sleep(10);
+        Thread.sleep(100);
 
         Transaction secondTx = new Transaction(defaultPortfolio, TransactionType.BUY, "TSLA", 5, new BigDecimal("200.00"));
         transactionRepository.save(secondTx);

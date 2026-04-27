@@ -57,12 +57,12 @@ class StockControllerTest {
 
     @Test
     void getStockHistory_ShouldReturn200Ok_AndHistoryList_WhenDataExists() throws Exception {
-
         long fakeTimestamp = 1700000000000L;
         ChartPoint fakePoint = new ChartPoint(fakeTimestamp, new BigDecimal("150.00"));
-        when(marketDataProvider.getStockHistory("AAPL", "1W")).thenReturn(List.of(fakePoint));
 
-        mockMvc.perform(get("/api/stocks/AAPL/history?range=1W")
+        when(marketDataProvider.getStockHistory("AAPL", "5D")).thenReturn(List.of(fakePoint));
+
+        mockMvc.perform(get("/api/stocks/AAPL/history?range=5D") // Use 5D here
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].timestamp").value(fakeTimestamp))
@@ -81,10 +81,9 @@ class StockControllerTest {
 
     @Test
     void getStockHistory_ShouldReturn400BadRequest_WhenDataIsEmpty() throws Exception {
+        when(marketDataProvider.getStockHistory("AAPL", "1D")).thenReturn(Collections.emptyList());
 
-        when(marketDataProvider.getStockHistory("AAPL", "1M")).thenReturn(Collections.emptyList());
-
-        mockMvc.perform(get("/api/stocks/AAPL/history?range=1M")
+        mockMvc.perform(get("/api/stocks/AAPL/history?range=1D")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("No historical data available."));

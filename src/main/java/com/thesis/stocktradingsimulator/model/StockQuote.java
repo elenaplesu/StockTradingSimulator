@@ -15,4 +15,6 @@ public class StockQuote {
     public void setSymbol(String symbol) { this.symbol = symbol; }
 
     public BigDecimal getCurrentPrice() { return currentPrice; }
+    public void setCurrentPrice(BigDecimal currentPrice) { this.currentPrice = currentPrice; }
+
 }

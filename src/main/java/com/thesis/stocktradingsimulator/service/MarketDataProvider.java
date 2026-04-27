@@ -7,4 +7,5 @@ import java.util.List;
 public interface MarketDataProvider {
     StockQuote getLivePrice(String symbol);
     List<ChartPoint> getStockHistory(String symbol, String range);
+    String getCompanyName(String symbol);
 }

@@ -98,7 +98,7 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
         fireEvent.change(screen.getByPlaceholderText(/Enter ticker/i), { target: { value: 'AAPL' } });
 
         await act(async () => {
-            fireEvent.submit(screen.getByRole('button', { name: /search/i }));
+            fireEvent.submit(screen.getByRole('button', { name: 'Search' }));
             await flushPromises();
             await flushPromises();
             await flushPromises();
@@ -171,7 +171,7 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
         fireEvent.change(screen.getByPlaceholderText(/Enter ticker/i), { target: { value: 'AAPL' } });
 
         await act(async () => {
-            fireEvent.submit(screen.getByRole('button', { name: /search/i }));
+            fireEvent.submit(screen.getByRole('button', { name: 'Search' }));
             await flushPromises();
             await flushPromises();
             await flushPromises();
@@ -223,7 +223,7 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
 
         fireEvent.change(screen.getByPlaceholderText(/Enter ticker/i), { target: { value: 'AAPL' } });
         await act(async () => {
-            fireEvent.submit(screen.getByRole('button', { name: /search/i }));
+            fireEvent.submit(screen.getByRole('button', { name: 'Search' }));
             await flushPromises();
             await flushPromises();
             await flushPromises();
@@ -243,7 +243,7 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
     });
 
     it('does not poll on weekends (Saturday)', async () => {
-        mockIsHoliday.mockReturnValue({ type: 'public', name: 'Weekend' });
+        mockIsHoliday.mockReturnValue(false);
 
         const T_SATURDAY = new Date('2023-10-28T15:00:00.000Z').getTime();
         const T_HISTORY = new Date('2023-10-28T14:00:00.000Z').getTime();
@@ -271,7 +271,58 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
         fireEvent.change(screen.getByPlaceholderText(/Enter ticker/i), { target: { value: 'AAPL' } });
 
         await act(async () => {
-            fireEvent.submit(screen.getByRole('button', { name: /search/i }));
+            fireEvent.submit(screen.getByRole('button', { name: 'Search' }));
+            await flushPromises();
+            await flushPromises();
+            await flushPromises();
+        });
+
+        expect(screen.getByText(/MARKET CLOSED/i)).toBeTruthy();
+
+        const callCountAfterSearch = global.fetch.mock.calls.length;
+
+        await act(async () => {
+            vi.advanceTimersByTime(30000);
+            await flushPromises();
+        });
+
+        expect(global.fetch.mock.calls.length).toBe(callCountAfterSearch);
+    });
+
+    it('does not poll on Good Friday (NYSE trading holiday)', async () => {
+        mockIsHoliday.mockReturnValue(false);
+        mockGetHolidays.mockReturnValue([
+            { name: 'Good Friday', date: new Date(2026, 3, 3) },
+            { name: 'Christmas Day', date: new Date(2026, 11, 25) }
+        ]);
+
+        const T_GOODFRIDAY = new Date('2026-04-03T15:00:00.000Z').getTime();
+        const T_HISTORY = new Date('2026-04-03T14:00:00.000Z').getTime();
+
+        vi.setSystemTime(T_GOODFRIDAY);
+
+        global.fetch.mockImplementation((url) => {
+            if (url.includes('/history')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve([{ timestamp: T_HISTORY, price: 150 }])
+                });
+            }
+            if (url.includes('/api/stocks/') && !url.includes('/history')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ symbol: 'AAPL', currentPrice: 152 })
+                });
+            }
+            return Promise.reject(new Error('not mocked'));
+        });
+
+        render(<MemoryRouter><Explore userId={1} /></MemoryRouter>);
+
+        fireEvent.change(screen.getByPlaceholderText(/Enter ticker/i), { target: { value: 'AAPL' } });
+
+        await act(async () => {
+            fireEvent.submit(screen.getByRole('button', { name: 'Search' }));
             await flushPromises();
             await flushPromises();
             await flushPromises();
@@ -317,7 +368,7 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
         fireEvent.change(screen.getByPlaceholderText(/Enter ticker/i), { target: { value: 'AAPL' } });
 
         await act(async () => {
-            fireEvent.submit(screen.getByRole('button', { name: /search/i }));
+            fireEvent.submit(screen.getByRole('button', { name: 'Search' }));
             await flushPromises();
             await flushPromises();
             await flushPromises();

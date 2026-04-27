@@ -44,7 +44,10 @@ class ApplicationUserDetailsServiceTest {
         assertNotNull(userDetails, "UserDetails should not be null");
         assertEquals("testStudent", userDetails.getUsername(), "Username mapping failed");
         assertEquals("encodedPassword123", userDetails.getPassword(), "Password mapping failed");
-        assertTrue(userDetails.getAuthorities().isEmpty(), "User should have no authorities assigned");
+        assertEquals(1, userDetails.getAuthorities().size());
+        assertTrue(userDetails.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_USER")));assertEquals("testStudent", userDetails.getUsername(), "Username mapping failed");
+        assertEquals("encodedPassword123", userDetails.getPassword(), "Password mapping failed");
 
         verify(userRepository, times(1)).findByUsername("testStudent");
     }

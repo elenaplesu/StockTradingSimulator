@@ -7,7 +7,7 @@ import com.thesis.stocktradingsimulator.model.Portfolio;
 import com.thesis.stocktradingsimulator.model.StockQuote;
 import com.thesis.stocktradingsimulator.model.User;
 import com.thesis.stocktradingsimulator.repository.HoldingRepository;
-import com.thesis.stocktradingsimulator.util.PortfolioMathUtils; // <-- Add this
+import com.thesis.stocktradingsimulator.util.PortfolioMathUtils;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -20,8 +20,7 @@ public class PortfolioAnalyticsService {
 
     private final UserService userService;
     private final HoldingRepository holdingRepository;
-    private final MarketDataProvider marketDataProvider; // Assuming you did the 3.A fix!
-
+    private final MarketDataProvider marketDataProvider;
     public PortfolioAnalyticsService(UserService userService, HoldingRepository holdingRepository, MarketDataProvider marketDataProvider) {
         this.userService = userService;
         this.holdingRepository = holdingRepository;

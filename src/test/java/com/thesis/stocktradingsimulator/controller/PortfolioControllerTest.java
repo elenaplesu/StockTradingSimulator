@@ -75,14 +75,10 @@ class PortfolioControllerTest {
 
     @Test
     @WithMockUser(username = "testStudent")
-    void getPortfolioData_ShouldReturn200Ok_WhenAccessingOtherUserData() throws Exception {
-        when(userService.getUserById(99L)).thenReturn(mockUser);
-        when(userService.getPortfolioByUserId(99L)).thenReturn(mockPortfolio);
-        when(holdingRepository.findByPortfolioId(100L)).thenReturn(List.of());
-
+    void getPortfolioData_ShouldReturn403Forbidden_WhenAccessingOtherUserData() throws Exception {
         mockMvc.perform(get("/api/portfolio/99")
                         .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+                .andExpect(status().isForbidden());
     }
 
     @Test

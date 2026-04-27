@@ -85,7 +85,7 @@ public class AiQuizService {
 
             Map<String, Object> requestMap = Map.of(
                     "model", "llama-3.1-8b-instant",
-                    "temperature", 0.2,
+                    "temperature", 0.2d,
                     "response_format", Map.of("type", "json_object"),
                     "messages", List.of(
                             Map.of("role", "system", "content", systemPrompt),
@@ -114,7 +114,6 @@ public class AiQuizService {
             return contentNode.path("questions").toString();
 
         } catch (Exception e) {
-            System.err.println("AI Generation Failed or Timed out. Triggering Fallback.");
             return getFallbackQuiz(); // Instantly falls back if taking longer than 5s
         }
     }

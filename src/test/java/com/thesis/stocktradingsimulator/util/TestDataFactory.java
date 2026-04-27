@@ -10,6 +10,7 @@ public class TestDataFactory {
         User user = new User();
         user.setId(1L);
         user.setUsername("testStudent");
+        user.setPassword("hashedPassword");
         return user;
     }
 

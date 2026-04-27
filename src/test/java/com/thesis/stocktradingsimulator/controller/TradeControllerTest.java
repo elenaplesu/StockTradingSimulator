@@ -1,36 +1,51 @@
 package com.thesis.stocktradingsimulator.controller;
 
-import com.thesis.stocktradingsimulator.exception.InsufficientFundsException;
-import com.thesis.stocktradingsimulator.exception.InsufficientSharesException;
 import com.thesis.stocktradingsimulator.model.Transaction;
+import com.thesis.stocktradingsimulator.model.User;
+import com.thesis.stocktradingsimulator.repository.UserRepository;
 import com.thesis.stocktradingsimulator.service.TransactionManagerService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(controllers = TradeController.class)
-@AutoConfigureMockMvc(addFilters = false)
+@AutoConfigureMockMvc
 class TradeControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
+    private UserRepository userRepository;
+
+    @MockitoBean
     private TransactionManagerService transactionManagerService;
 
+    @BeforeEach
+    void setUp() {
+        User mockCaller = new User("testStudent", "password");
+        mockCaller.setId(1L);
+        when(userRepository.findByUsername("testStudent")).thenReturn(Optional.of(mockCaller));
+    }
+
     @Test
+    @WithMockUser(username = "testStudent")
     void buyStock_ShouldReturn200Ok_AndFormattedSuccessMessage() throws Exception {
 
         Transaction mockTx = mock(Transaction.class);
@@ -49,6 +64,7 @@ class TradeControllerTest {
                 """;
 
         mockMvc.perform(post("/api/trade/buy")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isOk())
@@ -56,6 +72,7 @@ class TradeControllerTest {
     }
 
     @Test
+    @WithMockUser(username = "testStudent")
     void sellStock_ShouldReturn200Ok_AndFormattedSuccessMessage() throws Exception {
 
         Transaction mockTx = mock(Transaction.class);
@@ -74,9 +91,23 @@ class TradeControllerTest {
                 """;
 
         mockMvc.perform(post("/api/trade/sell")
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Success: Sold 5 shares of TSLA for $1000.00"));
+    }
+
+    @Test
+    @WithMockUser(username = "testStudent")
+    void buyStock_ShouldReturn403_WhenUserIdDoesNotMatchCaller() throws Exception {
+        // userId 99 != testStudent's id
+        String requestJson = """
+            {"userId": 99, "symbol": "AAPL", "quantity": 10}
+            """;
+        mockMvc.perform(post("/api/trade/buy")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(requestJson))
+                .andExpect(status().isForbidden());
     }
 }

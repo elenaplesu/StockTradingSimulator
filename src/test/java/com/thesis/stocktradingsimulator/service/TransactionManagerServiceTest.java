@@ -78,7 +78,7 @@ class TransactionManagerServiceTest {
         BigDecimal expectedBalance = startingBalance.subtract(totalCost);
         assertEquals(0, expectedBalance.compareTo(mockUser.getCashBalance()), "Cash was not deducted correctly");
 
-        verify(holdingRepository, times(1)).saveAndFlush(any(Holding.class));
+        verify(holdingRepository, times(1)).save(any(Holding.class));
         verify(transactionRepository, times(1)).save(any(Transaction.class));
     }
 
@@ -96,7 +96,7 @@ class TransactionManagerServiceTest {
         assertEquals(20, existingHolding.getQuantity());
         assertEquals(0, new BigDecimal("75.00").compareTo(existingHolding.getAverageBuyPrice()));
 
-        verify(holdingRepository, times(1)).saveAndFlush(existingHolding);
+        verify(holdingRepository, times(1)).save(existingHolding);
     }
 
     @Test
@@ -145,7 +145,7 @@ class TransactionManagerServiceTest {
         });
 
         verify(marketDataProvider, never()).getLivePrice(anyString());
-        verify(userRepository, never()).saveAndFlush(any());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -157,7 +157,7 @@ class TransactionManagerServiceTest {
         when(holdingRepository.findByPortfolioIdAndSymbol(1L, "TSLA")).thenReturn(Optional.of(existingHolding));
         when(marketDataProvider.getLivePrice("TSLA")).thenReturn(new StockQuote("TSLA", new BigDecimal("250.00")));
 
-        assertThrows(IllegalArgumentException.class, () -> {
+        assertThrows(InsufficientSharesException.class, () -> {
             transactionManagerService.executeSell(1L, "TSLA", 6);
         });
 
@@ -186,7 +186,7 @@ class TransactionManagerServiceTest {
         assertEquals(6, existingHolding.getQuantity(), "Holding quantity should decrease by the sold amount");
         assertEquals(0, new BigDecimal("100.00").compareTo(existingHolding.getAverageBuyPrice()), "Average buy price should NOT change on a sell");
 
-        verify(holdingRepository, times(1)).saveAndFlush(existingHolding);
+        verify(holdingRepository, times(1)).save(existingHolding);
         verify(holdingRepository, never()).delete(any());
     }
 }

@@ -8,7 +8,7 @@ import com.thesis.stocktradingsimulator.repository.PortfolioRepository;
 import com.thesis.stocktradingsimulator.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional; // Import this
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 
@@ -29,6 +29,10 @@ public class UserService {
     public User registerNewUser(String username, String password) {
         if (userRepository.existsByUsername(username)) {
             throw new UserAlreadyExistsException("Username '" + username + "' is already taken.");
+        }
+
+        if (password == null || password.length() < 6) {
+            throw new IllegalArgumentException("Password must be at least 6 characters.");
         }
 
         User newUser = new User(

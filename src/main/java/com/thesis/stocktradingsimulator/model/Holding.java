@@ -1,6 +1,7 @@
 package com.thesis.stocktradingsimulator.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.thesis.stocktradingsimulator.exception.InsufficientSharesException;
 import jakarta.persistence.*;
 
 import java.math.BigDecimal;
@@ -20,6 +21,7 @@ public class Holding {
     @JsonIgnore
     private Portfolio portfolio;
 
+    @JsonIgnore
     @Version
     private Long version=0L;
 
@@ -54,7 +56,7 @@ public class Holding {
     }
     public void removeShares(int amountToSell) {
         if (amountToSell <= 0) throw new IllegalArgumentException("Amount to sell must be positive");
-        if (this.quantity < amountToSell) throw new IllegalArgumentException("Cannot sell more shares than owned");
+        if (this.quantity < amountToSell) throw new InsufficientSharesException("Cannot sell more shares than owned");
 
         this.quantity -= amountToSell;
     }

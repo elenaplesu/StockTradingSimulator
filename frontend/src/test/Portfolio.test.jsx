@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom';
 import Portfolio from '../Portfolio';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 global.fetch = vi.fn();
 
@@ -22,6 +22,11 @@ vi.mock('../useNotifications', () => ({
 describe('Portfolio Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        vi.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
     });
 
     test('renders the loading spinner initially', () => {
@@ -98,11 +103,10 @@ describe('Portfolio Component', () => {
         expect(screen.getAllByText(/AAPL/i).length).toBeGreaterThan(0);
         expect(screen.getAllByText('10').length).toBeGreaterThan(0);
         expect(screen.getByText(/\$175\.00/i)).toBeInTheDocument();
+        expect(screen.getByText('BUY')).toBeInTheDocument();
     });
 
     test('renders error state when the API fails', async () => {
-        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
-
         fetch.mockImplementation(() => Promise.resolve({ ok: false }));
 
         render(
@@ -114,7 +118,5 @@ describe('Portfolio Component', () => {
         await waitFor(() => {
             expect(screen.getByText(/Error: Could not load data/i)).toBeInTheDocument();
         });
-
-        consoleError.mockRestore();
     });
 });

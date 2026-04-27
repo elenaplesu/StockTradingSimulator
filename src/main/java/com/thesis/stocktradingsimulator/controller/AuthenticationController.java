@@ -1,14 +1,12 @@
 package com.thesis.stocktradingsimulator.controller;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.thesis.stocktradingsimulator.exception.ResourceNotFoundException;
-import com.thesis.stocktradingsimulator.model.Portfolio;
 import com.thesis.stocktradingsimulator.model.User;
-import com.thesis.stocktradingsimulator.repository.PortfolioRepository;
 import com.thesis.stocktradingsimulator.repository.UserRepository;
 import com.thesis.stocktradingsimulator.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -42,8 +40,12 @@ public class AuthenticationController {
     }
 
     public static class LoginRequest {
-        public String username;
-        public String password;
+        @JsonProperty
+        private String username;
+        @JsonProperty
+        private String password;
+        public String getUsername() { return username; }
+        public String getPassword() { return password; }
     }
 
     @GetMapping("/me")
@@ -63,12 +65,9 @@ public class AuthenticationController {
     public ResponseEntity<?> registerUser(@RequestBody LoginRequest request,
                                           HttpServletRequest httpRequest,
                                           HttpServletResponse httpResponse) {
-        if (userRepository.findByUsername(request.username).isPresent()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Username already exists."));
-        }
 
-        User savedUser = userService.registerNewUser(request.username, request.password);
-
+        User savedUser = userService.registerNewUser(request.getUsername(), request.getPassword());
+        new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword());
         try {
             Authentication auth = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.username, request.password)
@@ -94,8 +93,8 @@ public class AuthenticationController {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.username,
-                            loginRequest.password
+                            loginRequest.getUsername(),
+                            loginRequest.getPassword()
                     )
             );
 
@@ -104,20 +103,13 @@ public class AuthenticationController {
             SecurityContextHolder.setContext(context);
             securityContextRepository.saveContext(context, request, response);
 
-            User user = userRepository.findByUsername(loginRequest.username)
-                    .orElseThrow(() -> new RuntimeException("User not found"));
+            User user = userRepository.findByUsername(loginRequest.getUsername())
+                    .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
             return ResponseEntity.ok(user.getId());
 
         } catch (AuthenticationException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("message", "Invalid username or password"));
         }
-    }
-
-    @PostMapping("/logout")
-    public ResponseEntity<?> logout(HttpSession session) {
-        session.invalidate();
-        SecurityContextHolder.clearContext();
-        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 }
