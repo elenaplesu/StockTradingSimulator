@@ -46,7 +46,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
     @Retryable(
             value = { Exception.class },
             maxAttempts = 3,
-            backoff = @Backoff(delay = 1000, multiplier = 2) // Wait 1s, then 2s, then fail
+            backoff = @Backoff(delay = 1000, multiplier = 2)
     )
     public StockQuote getLivePrice(String symbol) {
         String url = "https://query2.finance.yahoo.com/v8/finance/chart/" + symbol.toUpperCase() + "?interval=1m&range=1d";
@@ -69,7 +69,6 @@ public class YahooFinanceProvider implements MarketDataProvider {
         throw new RuntimeException("Missing data from Yahoo");
     }
 
-    // If all 3 retries fail, this method runs automatically
     @Recover
     public StockQuote recoverLivePrice(RuntimeException e, String symbol) {
         return null;

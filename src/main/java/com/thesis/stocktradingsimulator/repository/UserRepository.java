@@ -8,7 +8,7 @@ import java.util.Optional;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-    // Check if a username is taken before registering
+
     boolean existsByUsername(String username);
 
     Optional<User> findByUsername(String username);

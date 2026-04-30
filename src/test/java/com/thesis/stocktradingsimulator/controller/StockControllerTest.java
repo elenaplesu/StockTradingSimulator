@@ -62,7 +62,7 @@ class StockControllerTest {
 
         when(marketDataProvider.getStockHistory("AAPL", "5D")).thenReturn(List.of(fakePoint));
 
-        mockMvc.perform(get("/api/stocks/AAPL/history?range=5D") // Use 5D here
+        mockMvc.perform(get("/api/stocks/AAPL/history?range=5D")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].timestamp").value(fakeTimestamp))

@@ -1,12 +1,13 @@
 package com.thesis.stocktradingsimulator.controller;
 
-import com.thesis.stocktradingsimulator.exception.ResourceNotFoundException;
 import com.thesis.stocktradingsimulator.model.Transaction;
 import com.thesis.stocktradingsimulator.model.User;
 import com.thesis.stocktradingsimulator.repository.UserRepository;
 import com.thesis.stocktradingsimulator.service.TransactionManagerService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -26,46 +27,44 @@ public class TradeController {
 
     public TradeController(TransactionManagerService transactionManager, UserRepository userRepository) {
         this.transactionManager = transactionManager;
-        this.userRepository=userRepository;
+        this.userRepository = userRepository;
     }
 
-    public static class TradeRequest {
-        public Long userId;
-        public String symbol;
-        @Min(1) public int quantity;
-    }
+    public record TradeRequest(
+            @NotNull Long userId,
+            @NotBlank String symbol,
+            @Min(1) int quantity
+    ) {}
 
     @PostMapping("/buy")
     public ResponseEntity<?> buyStock(@RequestBody @Valid TradeRequest request, Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        User caller = userRepository.findByUsername(authentication.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        if (!caller.getId().equals(request.userId)) {
+        if (isUnauthorized(request.userId(), authentication)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        Transaction tx = transactionManager.executeBuy(request.userId, request.symbol, request.quantity);
+        Transaction tx = transactionManager.executeBuy(request.userId(), request.symbol(), request.quantity());
         BigDecimal totalCost = tx.getExecutionPrice().multiply(BigDecimal.valueOf(tx.getQuantity()));
+
         return ResponseEntity.ok(Map.of("message", String.format("Success: Bought %d shares of %s for $%.2f",
                 tx.getQuantity(), tx.getSymbol(), totalCost)));
     }
 
     @PostMapping("/sell")
     public ResponseEntity<?> sellStock(@RequestBody @Valid TradeRequest request, Authentication authentication) {
-        if (authentication == null || !authentication.isAuthenticated()) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-        }
-        User caller = userRepository.findByUsername(authentication.getName())
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
-        if (!caller.getId().equals(request.userId)) {
+        if (isUnauthorized(request.userId(), authentication)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
-        Transaction tx = transactionManager.executeSell(request.userId, request.symbol, request.quantity);
+        Transaction tx = transactionManager.executeSell(request.userId(), request.symbol(), request.quantity());
         BigDecimal totalRevenue = tx.getExecutionPrice().multiply(BigDecimal.valueOf(tx.getQuantity()));
+
         return ResponseEntity.ok(Map.of("message", String.format("Success: Sold %d shares of %s for $%.2f",
                 tx.getQuantity(), tx.getSymbol(), totalRevenue)));
+    }
+
+    private boolean isUnauthorized(Long userId, Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) return true;
+        User caller = userRepository.findByUsername(authentication.getName()).orElse(null);
+        return caller == null || !caller.getId().equals(userId);
     }
 }

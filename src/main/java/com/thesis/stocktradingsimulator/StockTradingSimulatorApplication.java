@@ -7,8 +7,8 @@ import org.springframework.retry.annotation.EnableRetry;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
 @SpringBootApplication
-@EnableCaching     // Turns on Spring Boot's memory cache
-@EnableScheduling  // Allows us to set a timer to clear the cache
+@EnableCaching
+@EnableScheduling
 @EnableRetry
 public class StockTradingSimulatorApplication {
 

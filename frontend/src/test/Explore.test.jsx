@@ -105,10 +105,9 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
         });
 
         const dataAfterSearch = JSON.parse(screen.getByTestId('mock-chart').textContent);
-
-        const p1504 = dataAfterSearch.find(p => p.timestamp === T_1504);
-        expect(p1504).toBeDefined();
-        expect(p1504.price).toBe(152);
+        const p1500 = dataAfterSearch.find(p => p.timestamp === T_1500);
+        expect(p1500).toBeDefined();
+        expect(p1500.price).toBe(152);
 
         const p1505initial = dataAfterSearch.find(p => p.timestamp === T_1505);
         expect(p1505initial).toBeDefined();
@@ -125,7 +124,7 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
         });
 
         await act(async () => {
-            vi.setSystemTime(T_1505);
+            vi.setSystemTime(T_1505 - 5000);
             vi.advanceTimersByTime(5000);
             await flushPromises();
             await flushPromises();
@@ -143,7 +142,6 @@ describe('Explore Component - Chart Padding & Polling Logic', () => {
         const filledSlots = dataAfterPoll.filter(p => p.price !== null);
         expect(filledSlots.length).toBeGreaterThan(0);
     });
-
     it('does not poll when market is closed', async () => {
         const T_closed = new Date('2023-10-25T21:00:00.000Z').getTime();
         const T_history = new Date('2023-10-25T19:55:00.000Z').getTime();

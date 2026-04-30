@@ -346,7 +346,7 @@ export default function Explore({ userId }) {
                                 {userId ? (
                                     <div className="text-start">
                                         <label className="form-label fw-bold text-muted">Shares to Buy</label>
-                                        <input type="number" className="form-control form-control-lg mb-3" placeholder="0" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+                                        <input type="number" className="form-control form-control-lg mb-3" placeholder="0" min="1" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
                                         <button className="btn btn-lg w-100 fw-bold text-white shadow-sm" style={{ backgroundColor: chartColor, borderColor: chartColor }} onClick={handleBuy}>Buy {stockData.symbol}</button>
                                     </div>
                                 ) : (

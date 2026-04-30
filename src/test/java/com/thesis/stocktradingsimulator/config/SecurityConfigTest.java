@@ -53,7 +53,7 @@ class SecurityConfigTest {
                         .with(org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"username\":\"test\", \"password\":\"pass\"}"))
-                .andExpect(status().isUnauthorized()); // Now it hits the provider and fails auth correctly
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

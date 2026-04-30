@@ -20,7 +20,6 @@ export default function Register({ setUserId }) {
         e.preventDefault();
         setError(null);
 
-        // Basic frontend validation
         if (password !== confirmPassword) {
             setError("Passwords do not match!");
             return;

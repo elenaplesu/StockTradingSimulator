@@ -1,6 +1,5 @@
 package com.thesis.stocktradingsimulator.controller;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.thesis.stocktradingsimulator.exception.ResourceNotFoundException;
 import com.thesis.stocktradingsimulator.model.User;
 import com.thesis.stocktradingsimulator.repository.UserRepository;
@@ -39,18 +38,10 @@ public class AuthenticationController {
         this.securityContextRepository = securityContextRepository;
     }
 
-    public static class LoginRequest {
-        @JsonProperty
-        private String username;
-        @JsonProperty
-        private String password;
-        public String getUsername() { return username; }
-        public String getPassword() { return password; }
-    }
+    public record LoginRequest(String username, String password) {}
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser(Authentication authentication) {
-
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -66,11 +57,11 @@ public class AuthenticationController {
                                           HttpServletRequest httpRequest,
                                           HttpServletResponse httpResponse) {
 
-        User savedUser = userService.registerNewUser(request.getUsername(), request.getPassword());
-        new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword());
+       User savedUser = userService.registerNewUser(request.username(), request.password());
+
         try {
             Authentication auth = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.username, request.password)
+                    new UsernamePasswordAuthenticationToken(request.username(), request.password())
             );
 
             SecurityContext context = SecurityContextHolder.createEmptyContext();
@@ -93,8 +84,8 @@ public class AuthenticationController {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
-                            loginRequest.getUsername(),
-                            loginRequest.getPassword()
+                            loginRequest.username(),
+                            loginRequest.password()
                     )
             );
 
@@ -103,7 +94,7 @@ public class AuthenticationController {
             SecurityContextHolder.setContext(context);
             securityContextRepository.saveContext(context, request, response);
 
-            User user = userRepository.findByUsername(loginRequest.getUsername())
+            User user = userRepository.findByUsername(loginRequest.username())
                     .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
             return ResponseEntity.ok(user.getId());

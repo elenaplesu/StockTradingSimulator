@@ -29,7 +29,6 @@ public class AiQuizService {
     private final ObjectMapper objectMapper;
     private final HttpClient httpClient;
 
-    // 1. THE BACKEND FALLBACK POOL
     private static final List<Map<String, Object>> FALLBACK_POOL = List.of(
             Map.of("q", "What is the primary benefit of diversifying a portfolio?", "options", List.of("Guaranteed profits", "Reducing overall risk", "Avoiding all taxes", "Increasing dividends"), "answer", "Reducing overall risk"),
             Map.of("q", "If inflation is 3% and your cash earns 0%, what happens to your purchasing power?", "options", List.of("It stays the same", "It increases by 3%", "It decreases by 3%", "It doubles"), "answer", "It decreases by 3%"),
@@ -80,8 +79,8 @@ public class AiQuizService {
 
             String userPrompt = "The user currently has this portfolio: [" + portfolioContext.toString() + "]. " +
                     "Generate a 5-question multiple-choice educational quiz about the stock market, investing principles, and trading concepts. " +
-                    "Tailor the difficulty and topics to their specific holdings. Focus primarily on general market knowledge, but consider mixing in a conceptual question or two about quantitative metrics like Return on Investment (ROI), Price-to-Earnings (P/E), or portfolio diversification/HHI if it fits their profile. " +
-                    "Make the questions practical and educational. DO NOT ask them to perform complex mental math calculations about their specific shares.";
+                    "Tailor the difficulty and topics to their specific holdings. Focus primarily on general market knowledge, but consider mixing in a conceptual question or two about quantitative metrics if it fits their profile. " +
+                    "Make the questions practical, personal and educational. DO NOT ask them to perform complex mental math calculations about their specific shares.";
 
             Map<String, Object> requestMap = Map.of(
                     "model", "llama-3.1-8b-instant",
@@ -98,7 +97,7 @@ public class AiQuizService {
                     .uri(URI.create("https://api.groq.com/openai/v1/chat/completions"))
                     .header("Content-Type", "application/json")
                     .header("Authorization", "Bearer " + apiKey)
-                    .timeout(Duration.ofSeconds(5)) // 2. THE JAVA 5-SECOND STOPWATCH
+                    .timeout(Duration.ofSeconds(5))
                     .POST(HttpRequest.BodyPublishers.ofString(requestBody))
                     .build();
 
@@ -114,17 +113,16 @@ public class AiQuizService {
             return contentNode.path("questions").toString();
 
         } catch (Exception e) {
-            return getFallbackQuiz(); // Instantly falls back if taking longer than 5s
+            return getFallbackQuiz();
         }
     }
 
-    // 3. THE JAVA RANDOMIZER
     public String getFallbackQuiz() {
         try {
             List<Map<String, Object>> shuffledPool = new ArrayList<>(FALLBACK_POOL);
-            Collections.shuffle(shuffledPool); // Randomize the 12 questions
-            List<Map<String, Object>> selectedQuestions = shuffledPool.subList(0, 5); // Take the first 5
-            return objectMapper.writeValueAsString(selectedQuestions); // Send as JSON array string
+            Collections.shuffle(shuffledPool);
+            List<Map<String, Object>> selectedQuestions = shuffledPool.subList(0, 5);
+            return objectMapper.writeValueAsString(selectedQuestions);
         } catch (Exception e) {
             return "[]";
         }

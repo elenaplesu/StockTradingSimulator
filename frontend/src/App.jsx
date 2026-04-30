@@ -28,19 +28,19 @@ function App() {
                     setUserId(id);
                     sessionStorage.setItem('userId', id);
                 } else {
-                    sessionStorage.removeItem('userId');  // ← add this
+                    sessionStorage.removeItem('userId');
                 }
                 setAppReady(true);
             })
             .catch(() => {
-                sessionStorage.removeItem('userId');  // ← add this too
+                sessionStorage.removeItem('userId');
                 setAppReady(true);
             });;
     }, []);
 
     const handleLogout = () => {
         fetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST', credentials: 'include', headers: {
-                'X-XSRF-TOKEN': getCsrfToken(), // CSRF token is required for POST logout
+                'X-XSRF-TOKEN': getCsrfToken(),
                 'Content-Type': 'application/json'
             } })
             .then(res => {

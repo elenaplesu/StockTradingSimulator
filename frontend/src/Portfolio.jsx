@@ -8,13 +8,13 @@ export default function Portfolio({userId}) {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [transactionsLoading, setTransactionsLoading] = useState(true);
-
+    const [transactionError, setTransactionError] = useState(false);
     const [sellQuantities, setSellQuantities] = useState({});
 
     const { notifications, addNotification, removeNotification } = useNotifications();
 
     const fetchPortfolio = () => {
-        // 1. Fetch Analytics
+
         fetch(`${API_BASE_URL}/api/portfolio/${userId}/analytics`, {credentials: 'include'})
             .then(response => {
                 if (!response.ok) throw new Error("Failed to load analytics");
@@ -29,7 +29,6 @@ export default function Portfolio({userId}) {
                 setLoading(false);
             });
 
-        // 2. Fetch Transaction History
         fetch(`${API_BASE_URL}/api/portfolio/${userId}/transactions`,{credentials: 'include'})
             .then(response => {
                 if (!response.ok) throw new Error("Failed to load transactions");
@@ -38,10 +37,12 @@ export default function Portfolio({userId}) {
             .then(historyData => {
                 setTransactions(historyData);
                 setTransactionsLoading(false);
+                setTransactionError(false);
             })
             .catch(error => {
                 console.error("Error fetching transactions:", error);
                 setTransactionsLoading(false);
+                setTransactionError(true);
             });
     };
 
@@ -248,7 +249,7 @@ export default function Portfolio({userId}) {
                     </tr>
                     </thead>
                     <tbody>
-                    {!Array.isArray(transactions) ? (
+                    {transactionError || !Array.isArray(transactions) ? (
                         <tr>
                             <td colSpan="6" className="text-center py-4 text-danger fw-bold">
                                 Failed to load transactions. Check the backend logs.

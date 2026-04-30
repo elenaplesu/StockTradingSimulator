@@ -29,7 +29,6 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class TransactionManagerServiceTest {
 
-    // 1. Updated to use the Interface!
     @Mock private MarketDataProvider marketDataProvider;
     @Mock private UserRepository userRepository;
     @Mock private PortfolioRepository portfolioRepository;

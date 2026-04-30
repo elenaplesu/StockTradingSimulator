@@ -67,7 +67,6 @@ class YahooFinanceProviderTest {
         when(httpClient.send(any(HttpRequest.class), any(HttpResponse.BodyHandler.class)))
                 .thenThrow(new java.net.http.HttpTimeoutException("Yahoo is down"));
 
-        // In a pure unit test without Spring AOP, the exception should bubble up
         RuntimeException exception = assertThrows(RuntimeException.class, () -> {
             yahooFinanceProvider.getLivePrice("AAPL");
         });
@@ -77,7 +76,7 @@ class YahooFinanceProviderTest {
 
     @Test
     void recoverLivePrice_ShouldReturnNull_WhenAllRetriesFail() {
-        // We can test the recovery method directly!
+
         RuntimeException fakeException = new RuntimeException("API call failed");
         StockQuote quote = yahooFinanceProvider.recoverLivePrice(fakeException, "AAPL");
 

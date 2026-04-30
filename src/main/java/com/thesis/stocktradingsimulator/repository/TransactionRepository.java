@@ -8,6 +8,5 @@ import java.util.List;
 
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, Long> {
-    // Get transaction history for a portfolio, ordered by newest first
     List<Transaction> findByPortfolioIdOrderByTimestampDesc(Long portfolioId);
 }

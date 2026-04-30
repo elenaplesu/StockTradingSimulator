@@ -66,7 +66,8 @@ class TradeControllerTest {
         mockMvc.perform(post("/api/trade/buy")
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(requestJson))
+                        .content(requestJson)
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Success: Bought 10 shares of AAPL for $1500.00"));
     }
@@ -101,7 +102,6 @@ class TradeControllerTest {
     @Test
     @WithMockUser(username = "testStudent")
     void buyStock_ShouldReturn403_WhenUserIdDoesNotMatchCaller() throws Exception {
-        // userId 99 != testStudent's id
         String requestJson = """
             {"userId": 99, "symbol": "AAPL", "quantity": 10}
             """;

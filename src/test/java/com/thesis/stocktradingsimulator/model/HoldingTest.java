@@ -22,11 +22,11 @@ class HoldingTest {
 
     @Test
     void addShares_ShouldIncreaseQuantityAndCalculateNewAveragePrice() {
-        // Buy 10 more shares at $50.00 each
+
         holding.addShares(10, new BigDecimal("50.00"));
 
         assertEquals(20, holding.getQuantity(), "Quantity should increase to 20");
-        // (10 * 100) + (10 * 50) = 1500. 1500 / 20 = 75.00
+
         assertEquals(0, new BigDecimal("75.00").compareTo(holding.getAverageBuyPrice()), "Average buy price should be $75.00");
     }
 
@@ -52,7 +52,7 @@ class HoldingTest {
     @Test
     void removeShares_ShouldThrowException_WhenSellingMoreThanOwned() {
         assertThrows(InsufficientSharesException.class, () -> {
-            holding.removeShares(11); // Trying to sell 11 when we only own 10
+            holding.removeShares(11);
         }, "Should not allow selling more shares than currently owned");
     }
 
