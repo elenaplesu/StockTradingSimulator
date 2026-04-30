@@ -2,11 +2,7 @@ package com.thesis.stocktradingsimulator.service;
 
 import com.thesis.stocktradingsimulator.exception.InsufficientFundsException;
 import com.thesis.stocktradingsimulator.exception.InsufficientSharesException;
-import com.thesis.stocktradingsimulator.model.Holding;
-import com.thesis.stocktradingsimulator.model.Portfolio;
-import com.thesis.stocktradingsimulator.model.StockQuote;
-import com.thesis.stocktradingsimulator.model.Transaction;
-import com.thesis.stocktradingsimulator.model.User;
+import com.thesis.stocktradingsimulator.model.*;
 import com.thesis.stocktradingsimulator.repository.HoldingRepository;
 import com.thesis.stocktradingsimulator.repository.PortfolioRepository;
 import com.thesis.stocktradingsimulator.repository.TransactionRepository;

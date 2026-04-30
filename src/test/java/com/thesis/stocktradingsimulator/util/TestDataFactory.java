@@ -2,7 +2,6 @@ package com.thesis.stocktradingsimulator.util;
 
 import com.thesis.stocktradingsimulator.model.Portfolio;
 import com.thesis.stocktradingsimulator.model.User;
-import java.math.BigDecimal;
 
 public class TestDataFactory {
 

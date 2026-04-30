@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { API_BASE_URL } from './config';
+import {useState} from 'react';
+import {API_BASE_URL} from './config';
 
 const checkMatch = (option, answer) => {
     if (!option || !answer) return false;

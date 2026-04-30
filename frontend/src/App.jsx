@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Link, NavLink, Navigate } from 'react-router-dom';
+import {useEffect, useState} from 'react';
+import {BrowserRouter as Router, Link, Navigate, NavLink, Route, Routes} from 'react-router-dom';
 import Portfolio from './Portfolio';
 import Explore from './Explore.jsx';
 import Login from './Login';
@@ -35,7 +35,7 @@ function App() {
             .catch(() => {
                 sessionStorage.removeItem('userId');
                 setAppReady(true);
-            });;
+            });
     }, []);
 
     const handleLogout = () => {

@@ -16,15 +16,15 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.session.SessionRegistry;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -45,6 +45,7 @@ class AuthControllerTest {
     @MockitoBean private UserService userService;
     @MockitoBean private UserRepository userRepository;
     @MockitoBean private PortfolioRepository portfolioRepository;
+    @MockitoBean private SessionRegistry sessionRegistry;
 
     private User mockUser;
 
@@ -57,8 +58,13 @@ class AuthControllerTest {
     @Test
     void registerUser_ShouldReturn200Ok_WithUserId_WhenRegistrationIsSuccessful() throws Exception {
 
+        Authentication mockAuth = mock(Authentication.class);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(mockAuth);
+        when(mockAuth.getPrincipal()).thenReturn("testStudent");
         when(userRepository.findByUsername("testStudent")).thenReturn(Optional.of(mockUser));
         when(userService.registerNewUser("testStudent", "password123")).thenReturn(mockUser);
+        when(sessionRegistry.getAllSessions(any(), any(Boolean.class))).thenReturn(List.of());
 
         String requestJson = """
                 {
@@ -99,6 +105,8 @@ class AuthControllerTest {
         Authentication mockAuth = mock(Authentication.class);
         when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                 .thenReturn(mockAuth);
+        when(mockAuth.getPrincipal()).thenReturn("testStudent");
+        when(sessionRegistry.getAllSessions(any(), any(Boolean.class))).thenReturn(List.of());
         when(userRepository.findByUsername("testStudent")).thenReturn(Optional.of(mockUser));
 
         String requestJson = """
@@ -128,12 +136,10 @@ class AuthControllerTest {
                 }
                 """;
 
-
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(requestJson))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Invalid username or password"));
     }
-
 }

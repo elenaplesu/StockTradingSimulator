@@ -116,7 +116,7 @@ public class YahooFinanceProvider implements MarketDataProvider {
                 return history;
             }
         } catch (Exception e) {
-            Collections.emptyList();
+            return Collections.emptyList();
         }
 
         return Collections.emptyList();

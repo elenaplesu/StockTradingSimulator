@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import {useEffect, useState} from 'react';
+import {Link, useNavigate} from 'react-router-dom';
 import {API_BASE_URL, getCsrfToken} from './config';
 
 export default function Login({ setUserId }) {

@@ -1,7 +1,6 @@
 package com.thesis.stocktradingsimulator.model;
-import jakarta.persistence.*;
 
-import java.math.BigDecimal;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "portfolio")

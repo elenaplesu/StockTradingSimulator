@@ -57,6 +57,11 @@ public class GlobalExceptionHandler {
         return buildErrorResponse(HttpStatus.CONFLICT, "Trade conflict detected. This request is already being processed.");
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        return buildErrorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
     private ResponseEntity<Map<String, String>> buildErrorResponse(HttpStatus status, String message) {
         return ResponseEntity.status(status).body(Map.of("message", message));
     }
